@@ -2,7 +2,7 @@
 
 A professional, **non-custodial** multi-chain wallet dashboard with an email-OTP login and a **support/security-only admin panel**.
 
-> **Security model:** NovaWallet never has a seed-phrase or private-key field. Keys stay inside the user's own wallet (MetaMask, Trust Wallet, Coinbase Wallet). The admin can manage accounts, tickets and security review — but can never see keys, balances, or move funds.
+> **Security model:** External wallet keys stay inside the user's own wallet (MetaMask, Trust Wallet, Coinbase Wallet). NovaWallet also offers an **optional local EVM wallet**: its recovery phrase or private key is encrypted on-device with AES-GCM + PBKDF2 (210k iterations) and is never sent to our servers, logs or database. The admin can manage accounts, tickets and security review — but can never see keys, balances, or move funds.
 
 ## Features
 
@@ -11,6 +11,7 @@ A professional, **non-custodial** multi-chain wallet dashboard with an email-OTP
 - Native + USDT / USDC / DAI balances
 - Watch-only BTC (mempool.space, Blockstream fallback) and SOL (public RPC fallback) lookups
 - Watch-only EVM address tracking for any `0x` address
+- Create or import a local EVM wallet, encrypted on-device; unlock, connect, sign and send
 - Mobile wallet deep links (MetaMask, Trust Wallet, Coinbase Wallet)
 - Send flow signed inside the user's wallet (native + ERC-20) with an in-app network switcher
 - Optional **withdrawal lock**: wallet signature + fresh email code before sending
@@ -21,6 +22,8 @@ A professional, **non-custodial** multi-chain wallet dashboard with an email-OTP
 - Row Level Security (RLS) enforced in Postgres
 
 > **Sending scope:** EVM networks only (Ethereum, BNB Chain, Polygon, Arbitrum, Base). BTC and SOL are watch-only; withdraw from the wallet that controls those addresses.
+
+> **Local wallet safety:** The recovery phrase is shown once at creation. Back it up offline. The encryption password cannot be recovered by NovaWallet. Removing the local wallet without a backup permanently loses access. Never share the phrase with anyone, including support.
 
 ## Stack
 
@@ -112,15 +115,15 @@ Create the empty repository first on GitHub (no README, no .gitignore).
 | Read and reply to tickets | Approve or move user funds |
 | Review the security audit log | Sign transactions on behalf of users |
 
-This is enforced by Postgres RLS and by the fact that the app has no key material at all.
+This is enforced by Postgres RLS and by keeping all key material client-side: external keys stay in the user's wallet and a local wallet secret is encrypted in the browser before storage. The database and admin panel never receive it.
 
 ## Project structure
 
 ```
 src/
-  components/   Layout, WalletButton, ChainCard, WatchWalletCard, BtcCard, SolCard, SendPanel, guards
+  components/   Layout, WalletButton, LocalWalletCard, ChainCard, WatchWalletCard, BtcCard, SolCard, SendPanel, guards
   context/      AuthContext (Supabase session + profile)
-  lib/          supabase client, wagmi config, chain/token map, audit, format
+  lib/          supabase client, wagmi config, local wallet keystore/connector, chain/token map, audit, format
   pages/        Landing, Login, Dashboard, Security, Support, Admin
 supabase/
   schema.sql    tables, RLS, admin guards, triggers

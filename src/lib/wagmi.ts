@@ -1,11 +1,13 @@
 import { createConfig, http } from 'wagmi'
 import { injected, walletConnect } from 'wagmi/connectors'
 import { mainnet, bsc, polygon, arbitrum, base } from 'wagmi/chains'
+import { localWalletConnector } from './localConnector'
 
 const projectId = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID
 
 const connectors = [
   injected({ shimDisconnect: true }),
+  localWalletConnector(),
   ...(projectId
     ? [
         walletConnect({

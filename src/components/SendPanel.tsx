@@ -45,7 +45,7 @@ export function SendPanel() {
       <div className="card p-6 text-center">
         <p className="text-sm font-semibold text-white">Connect a wallet to send</p>
         <p className="mt-1 text-xs text-slate-400">
-          Transactions are always signed inside your own wallet. NovaWallet never holds your keys.
+          Transactions are always signed inside your connected wallet. NovaWallet's servers never hold your keys.
         </p>
       </div>
     )
@@ -213,8 +213,8 @@ export function SendPanel() {
       )}
 
       <p className="text-[11px] leading-relaxed text-slate-500">
-        You sign every transaction in your own wallet. NovaWallet cannot move funds, and never asks for your recovery
-        phrase or private key.
+        You sign every transaction in your connected wallet. External secrets stay in your wallet; a local wallet
+        secret is encrypted in your browser and never sent to our servers.
       </p>
     </form>
   )

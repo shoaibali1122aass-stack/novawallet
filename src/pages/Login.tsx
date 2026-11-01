@@ -117,7 +117,7 @@ export default function Login() {
             Sign in with a code. Keep your keys where they belong.
           </h2>
           <p className="mt-4 max-w-md text-sm leading-relaxed text-slate-400">
-            No passwords, no seed phrases. We email you a single-use code — your wallet stays entirely in your control.
+            No passwords. We email you a single-use code — your wallet keys stay entirely in your control.
           </p>
           <div className="mt-8 space-y-3">
             {[
@@ -229,8 +229,8 @@ export default function Login() {
           {error && <p className="mt-4 text-xs text-rose-400">{error}</p>}
 
           <div className="mt-8 rounded-xl border border-white/5 bg-ink-900/60 p-4 text-xs text-slate-500">
-            <strong className="text-slate-300">Security note:</strong> NovaWallet will never ask for your recovery
-            phrase or private key. Only enter the code if you just requested it.
+            <strong className="text-slate-300">Security note:</strong> NovaWallet support will never ask you to
+            email your recovery phrase or private key. Only enter the code if you just requested it.
           </div>
 
           <p className="mt-6 text-center text-xs text-slate-500">

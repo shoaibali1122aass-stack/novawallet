@@ -101,7 +101,7 @@ export default function Security() {
       <div>
         <h1 className="text-2xl font-black tracking-tight text-white">Security</h1>
         <p className="mt-1 text-sm text-slate-400">
-          Manage your account protection. NovaWallet cannot access your funds or keys at any point.
+          Manage your account protection. NovaWallet's servers cannot access your funds or keys at any point.
         </p>
       </div>
 

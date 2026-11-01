@@ -75,7 +75,7 @@ export default function Support() {
       <div>
         <h1 className="text-2xl font-black tracking-tight text-white">Support</h1>
         <p className="mt-1 text-sm text-slate-400">
-          Account and security help. We will never ask for your recovery phrase or private key.
+          Account and security help. Support will never ask for your recovery phrase or private key.
         </p>
       </div>
 
@@ -96,7 +96,7 @@ export default function Support() {
             <label className="label">Message</label>
             <textarea
               className="input min-h-[130px] resize-y"
-              placeholder="Describe what happened. Never include seed phrases or private keys."
+              placeholder="Describe what happened. Never include seed phrases or private keys in a ticket."
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               maxLength={4000}

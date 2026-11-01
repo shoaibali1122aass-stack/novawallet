@@ -14,7 +14,7 @@ const coins = [
 const features = [
   {
     title: 'Truly self-custody',
-    body: 'Connect MetaMask, Trust Wallet or Coinbase Wallet, or track any address in watch-only mode. Keys stay in your wallet — never on our servers.',
+    body: 'Connect MetaMask, Trust Wallet or Coinbase Wallet, create an encrypted local wallet, or track any address in watch-only mode. Keys never leave your control or reach our servers.',
     icon: (
       <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" />
     ),
@@ -47,11 +47,11 @@ const features = [
 ]
 
 const steps = [
-  { n: '01', t: 'Create your account', d: 'Sign in with an email code. No password, no seed phrase, nothing stored on our side.' },
+  { n: '01', t: 'Create your account', d: 'Sign in with an email code. No password, and no wallet keys are stored on our side.' },
   {
     n: '02',
     t: 'Connect or track a wallet',
-    d: 'Use MetaMask, Trust Wallet or Coinbase Wallet — or add any address in watch-only mode.',
+    d: 'Use MetaMask, Trust Wallet or Coinbase Wallet, create a local encrypted wallet, or add any address in watch-only mode.',
   },
   {
     n: '03',
@@ -90,7 +90,7 @@ export default function Landing() {
           <div>
             <span className="badge border-accent-500/30 bg-accent-500/10 text-accent-400">
               <span className="h-1.5 w-1.5 animate-pulseSoft rounded-full bg-accent-400" />
-              Non-custodial · No seed phrase ever requested
+              Non-custodial · Secrets encrypted on-device
             </span>
             <h1 className="mt-5 text-4xl font-black leading-[1.05] tracking-tight text-white sm:text-5xl lg:text-6xl">
               Every coin.
@@ -186,7 +186,7 @@ export default function Landing() {
             Everything you need. Nothing you have to trust us with.
           </h2>
           <p className="mt-4 text-slate-400">
-            NovaWallet is a viewing and signing layer. Your wallet does the signing — we never see a private key.
+            NovaWallet is a viewing and signing layer. Your wallet does the signing, and a local wallet secret is encrypted in your browser before it is stored.
           </p>
         </div>
 
@@ -214,12 +214,12 @@ export default function Landing() {
                 We will never ask for your recovery phrase.
               </h2>
               <p className="mt-4 text-sm leading-relaxed text-slate-400">
-                If any site asks for your 12 or 24 words, it is trying to steal your funds. NovaWallet has no seed
-                phrase input at all — by design. You connect a wallet you already control, and you approve every
-                transaction inside that wallet.
+                If any site asks for your 12 or 24 words, it is trying to steal your funds. Connect a wallet you
+                already control, or create/import a local wallet whose secret is encrypted on this device. Never
+                share your recovery phrase with anyone, including support.
               </p>
               <div className="mt-6 flex flex-wrap gap-2">
-                {['No seed phrase input', 'No private key upload', 'No custodial balances', 'Open audit log'].map((t) => (
+                {['Optional encrypted local wallet', 'Secrets never sent to servers', 'No custodial balances', 'Open audit log'].map((t) => (
                   <span key={t} className="badge border-accent-500/30 bg-accent-500/10 text-accent-400">
                     <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
                       <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" />
@@ -250,7 +250,7 @@ export default function Landing() {
         <div className="container-x">
           <div className="mx-auto max-w-2xl text-center">
             <h2 className="text-3xl font-black tracking-tight text-white sm:text-4xl">Up and running in minutes</h2>
-            <p className="mt-4 text-slate-400">No downloads, no seed phrases, no custody risk.</p>
+            <p className="mt-4 text-slate-400">No downloads, no custody risk.</p>
           </div>
           <div className="mt-14 grid gap-6 md:grid-cols-3">
             {steps.map((s) => (

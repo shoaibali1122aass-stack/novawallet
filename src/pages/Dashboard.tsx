@@ -8,6 +8,7 @@ import { BtcCard } from '../components/BtcCard'
 import { SolCard } from '../components/SolCard'
 import { SendPanel } from '../components/SendPanel'
 import { WalletButton } from '../components/WalletButton'
+import { LocalWalletCard } from '../components/LocalWalletCard'
 import { WatchWalletCard } from '../components/WatchWalletCard'
 import { CopyButton } from '../components/CopyButton'
 import { shortAddr } from '../lib/format'
@@ -84,11 +85,15 @@ export default function Dashboard() {
             <div>
               <p className="text-sm font-semibold text-white">Connect a wallet or track an address</p>
               <p className="text-xs text-slate-400">
-                Balances are read directly from public RPCs. No keys or phrases are ever requested. You can also{' '}
+                Balances are read directly from public RPCs. You can{' '}
+                <a href="#local-wallet" className="font-semibold text-brand-400 hover:underline">
+                  create or import a wallet
+                </a>{' '}
+                on this device or{' '}
                 <a href="#add-wallet" className="font-semibold text-brand-400 hover:underline">
                   track any address
                 </a>{' '}
-                without connecting.
+                without connecting an external wallet.
               </p>
             </div>
           </div>
@@ -96,7 +101,10 @@ export default function Dashboard() {
         </div>
       )}
 
-      <WatchWalletCard onChange={handleWatchChange} connected={isConnected} />
+      <div className="grid items-start gap-4 lg:grid-cols-2">
+        <LocalWalletCard />
+        <WatchWalletCard onChange={handleWatchChange} connected={isConnected} />
+      </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-4 lg:col-span-2">

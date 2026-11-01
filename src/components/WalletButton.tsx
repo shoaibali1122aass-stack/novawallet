@@ -50,7 +50,9 @@ export function WalletButton({ compact = false }: { compact?: boolean }) {
   const hasInjectedProvider =
     typeof window !== 'undefined' && Boolean((window as unknown as { ethereum?: unknown }).ethereum)
   const walletConnect = connectors.find((c) => c.id === 'walletConnect')
-  const discovered = connectors.filter((c) => c.id !== 'injected' && c.id !== 'walletConnect')
+  const discovered = connectors.filter(
+    (c) => c.id !== 'injected' && c.id !== 'walletConnect' && c.id !== 'novaLocal',
+  )
   const genericInjected = connectors.find((c) => c.id === 'injected')
   const list = [
     ...discovered,
@@ -98,7 +100,7 @@ export function WalletButton({ compact = false }: { compact?: boolean }) {
               <div>
                 <h3 className="text-lg font-bold text-white">Connect a wallet</h3>
                 <p className="mt-1 text-xs text-slate-400">
-                  Your keys stay in your wallet. NovaWallet never asks for a recovery phrase.
+                  External wallets keep their keys. The optional local wallet encrypts its secret in your browser.
                 </p>
               </div>
               <button
@@ -167,13 +169,22 @@ export function WalletButton({ compact = false }: { compact?: boolean }) {
               </div>
             )}
 
-            <Link
-              to="/dashboard#add-wallet"
-              onClick={() => setOpen(false)}
-              className="mt-4 inline-block text-xs font-semibold text-brand-400 hover:underline"
-            >
-              Track a watch-only address instead →
-            </Link>
+            <div className="mt-4 flex flex-col gap-1.5">
+              <Link
+                to="/dashboard#local-wallet"
+                onClick={() => setOpen(false)}
+                className="text-xs font-semibold text-brand-400 hover:underline"
+              >
+                Create or import a NovaWallet local wallet →
+              </Link>
+              <Link
+                to="/dashboard#add-wallet"
+                onClick={() => setOpen(false)}
+                className="text-xs font-semibold text-slate-400 hover:text-white hover:underline"
+              >
+                Track a watch-only address instead →
+              </Link>
+            </div>
 
             {errorText && <p className="mt-4 text-xs text-rose-400">{errorText}</p>}
           </div>
