@@ -5,6 +5,7 @@ import Dashboard from './pages/Dashboard'
 import Security from './pages/Security'
 import Support from './pages/Support'
 import Admin from './pages/Admin'
+import Setup from './pages/Setup'
 import { Layout } from './components/Layout'
 import { AdminGate, ProtectedRoute } from './components/Guards'
 
@@ -13,6 +14,7 @@ export default function App() {
     <Routes>
       <Route path="/" element={<Landing />} />
       <Route path="/login" element={<Login />} />
+      <Route path="/setup" element={<Setup />} />
 
       <Route element={<ProtectedRoute />}>
         <Route element={<Layout />}>

@@ -127,8 +127,11 @@ export default function Login() {
 
           {!isSupabaseConfigured && (
             <div className="mb-6 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-300">
-              Supabase keys are missing. Add <code className="font-mono">VITE_SUPABASE_URL</code> and{' '}
-              <code className="font-mono">VITE_SUPABASE_ANON_KEY</code> to enable sign-in.
+              Supabase connect nahi hai.{' '}
+              <Link to="/setup" className="font-semibold underline">
+                Setup page kholo
+              </Link>{' '}
+              aur apni public URL + anon key paste karo.
             </div>
           )}
 

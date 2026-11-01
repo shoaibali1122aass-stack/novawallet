@@ -44,6 +44,18 @@ Vite · React · TypeScript · Tailwind CSS · wagmi/viem · Supabase (Auth + Po
 Create a project at <https://cloud.reown.com> and copy the Project ID.
 Without it, the app still works with injected wallets (MetaMask etc.).
 
+## 2b. Configure without redeploying (runtime setup)
+
+If you deploy without `VITE_SUPABASE_*` env vars, the site stays up but auth is disabled.
+Open **`/setup`** on the deployed site and paste:
+
+- **Project URL** — `https://xxxx.supabase.co`
+- **Anon public key** — Project Settings → API → `anon public` (or the new `publishable` key)
+
+It is stored only in that browser's `localStorage` (the anon key is public by design).
+The app never accepts a `service_role` / secret key. This is the fastest way to unblock
+sign-in when you cannot edit Vercel env vars immediately.
+
 ## 3. Local development
 
 ```bash
