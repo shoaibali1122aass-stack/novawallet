@@ -10,6 +10,14 @@ export type Token = {
 
 export const SUPPORTED_CHAINS = [mainnet, bsc, polygon, arbitrum, base] as const
 
+export const RPC_URLS: Record<number, string> = {
+  [mainnet.id]: 'https://ethereum-rpc.publicnode.com',
+  [bsc.id]: 'https://bsc-rpc.publicnode.com',
+  [polygon.id]: 'https://polygon-bor-rpc.publicnode.com',
+  [arbitrum.id]: 'https://arbitrum-one-rpc.publicnode.com',
+  [base.id]: 'https://base-rpc.publicnode.com',
+}
+
 export const TOKENS: Record<number, Token[]> = {
   [mainnet.id]: [
     { symbol: 'USDT', name: 'Tether USD', address: '0xdAC17F958D2ee523a2206206994597C13D831ec7', decimals: 6 },

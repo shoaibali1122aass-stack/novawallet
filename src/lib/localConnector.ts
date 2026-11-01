@@ -2,6 +2,7 @@ import { createConnector } from 'wagmi'
 import { createPublicClient, createWalletClient, http, toHex, type Chain } from 'viem'
 import { mainnet, bsc, polygon, arbitrum, base } from 'wagmi/chains'
 import { localWalletStore } from './localWallet'
+import { RPC_URLS } from './chains'
 
 const CHAINS = [mainnet, bsc, polygon, arbitrum, base] as const
 const CHAIN_BY_ID = new Map<number, Chain>(CHAINS.map((chain) => [chain.id, chain]))
@@ -66,7 +67,7 @@ function createProvider(getChainId: () => number, setChainId: (chainId: number) 
 
         case 'eth_sendTransaction': {
           const [tx] = params as [RpcTx]
-          const client = createWalletClient({ account, chain, transport: http() })
+          const client = createWalletClient({ account, chain, transport: http(RPC_URLS[chain.id]) })
           return client.sendTransaction({
             account,
             chain,
@@ -82,7 +83,7 @@ function createProvider(getChainId: () => number, setChainId: (chainId: number) 
 
         case 'eth_signTransaction': {
           const [tx] = params as [RpcTx]
-          const client = createWalletClient({ account, chain, transport: http() })
+          const client = createWalletClient({ account, chain, transport: http(RPC_URLS[chain.id]) })
           return client.signTransaction({
             account,
             chain,
@@ -97,7 +98,7 @@ function createProvider(getChainId: () => number, setChainId: (chainId: number) 
         }
 
         default: {
-          const client = createPublicClient({ chain, transport: http() })
+          const client = createPublicClient({ chain, transport: http(RPC_URLS[chain.id]) })
           return client.request({ method, params } as never)
         }
       }

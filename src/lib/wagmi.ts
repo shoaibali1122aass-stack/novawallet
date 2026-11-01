@@ -2,6 +2,7 @@ import { createConfig, http } from 'wagmi'
 import { injected, walletConnect } from 'wagmi/connectors'
 import { mainnet, bsc, polygon, arbitrum, base } from 'wagmi/chains'
 import { localWalletConnector } from './localConnector'
+import { RPC_URLS } from './chains'
 
 const projectId = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID
 
@@ -28,11 +29,11 @@ export const wagmiConfig = createConfig({
   chains: [mainnet, bsc, polygon, arbitrum, base],
   connectors,
   transports: {
-    [mainnet.id]: http(),
-    [bsc.id]: http(),
-    [polygon.id]: http(),
-    [arbitrum.id]: http(),
-    [base.id]: http(),
+    [mainnet.id]: http(RPC_URLS[mainnet.id]),
+    [bsc.id]: http(RPC_URLS[bsc.id]),
+    [polygon.id]: http(RPC_URLS[polygon.id]),
+    [arbitrum.id]: http(RPC_URLS[arbitrum.id]),
+    [base.id]: http(RPC_URLS[base.id]),
   },
 })
 
