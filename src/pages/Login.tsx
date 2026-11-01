@@ -42,15 +42,30 @@ export default function Login() {
     }
     setBusy(true)
     try {
-      const { error: otpError } = await supabase.auth.signInWithOtp({
-        email: clean,
-        options: { shouldCreateUser: true },
-      })
-      if (otpError) throw otpError
+      const { data, error: rpcError } = await supabase.rpc('request_login_code', { p_email: clean })
+      if (rpcError) throw rpcError
+      const result = data as { ok?: boolean; error?: string; retry_after?: number } | null
+      if (!result?.ok) {
+        if (result?.error === 'rate_limit') {
+          const retry = typeof result.retry_after === 'number' ? result.retry_after : 45
+          setCooldown(retry)
+          setNotice(`Please wait ${retry}s before requesting another code.`)
+          return
+        }
+        if (result?.error === 'invalid_email') {
+          setError('Enter a valid email address.')
+          return
+        }
+        if (result?.error === 'not_configured') {
+          setError('Email service is not configured. Please contact support.')
+          return
+        }
+        throw new Error('Could not send the code. Try again.')
+      }
       setEmail(clean)
       setStep('code')
       setCooldown(45)
-      setNotice(`We sent a verification code to ${clean}.`)
+      setNotice(`Verification code sent to ${clean}. It may take up to a minute to arrive.`)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not send the code. Try again.')
     } finally {
@@ -61,20 +76,25 @@ export default function Login() {
   async function verify(e: FormEvent) {
     e.preventDefault()
     setError('')
-    if (code.trim().length < 6) {
-      setError('Enter the 6-digit code from your email.')
+    const token = code.trim()
+    if (token.length < 6) {
+      setError('Enter the code from your email.')
       return
     }
     setBusy(true)
     try {
-      const { error: verifyError } = await supabase.auth.verifyOtp({
-        email,
-        token: code.trim(),
-        type: 'email',
-      })
-      if (verifyError) throw verifyError
-      await logAudit('login_success', { method: 'email_otp' })
-      navigate('/dashboard', { replace: true })
+      let lastError: unknown = null
+      const types = ['email', 'magiclink', 'signup'] as const
+      for (const type of types) {
+        const { data, error: verifyError } = await supabase.auth.verifyOtp({ email, token, type })
+        if (!verifyError && data.session) {
+          await logAudit('login_success', { method: 'email_otp' })
+          navigate('/dashboard', { replace: true })
+          return
+        }
+        lastError = verifyError
+      }
+      throw lastError instanceof Error ? lastError : new Error('Invalid or expired code.')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Invalid or expired code.')
     } finally {
@@ -102,7 +122,7 @@ export default function Login() {
           <div className="mt-8 space-y-3">
             {[
               'Passwordless email verification',
-              'Single-use codes with 10-minute expiry',
+              'Single-use codes, short-lived by design',
               'Rate-limited against brute force',
             ].map((t) => (
               <div key={t} className="flex items-center gap-3 text-sm text-slate-300">
@@ -140,8 +160,8 @@ export default function Login() {
           </h1>
           <p className="mt-2 text-sm text-slate-400">
             {step === 'email'
-              ? 'Enter your email and we will send a 6-digit verification code.'
-              : 'Enter the 6-digit code we just sent to continue.'}
+              ? 'Enter your email and we will send a verification code.'
+              : 'Enter the verification code we sent to your email.'}
           </p>
 
           {step === 'email' ? (
@@ -158,8 +178,8 @@ export default function Login() {
                   required
                 />
               </div>
-              <button className="btn-primary w-full" disabled={busy || !isSupabaseConfigured}>
-                {busy ? 'Sending…' : 'Send verification code'}
+              <button className="btn-primary w-full" disabled={busy || cooldown > 0 || !isSupabaseConfigured}>
+                {busy ? 'Sending…' : cooldown > 0 ? `Wait ${cooldown}s` : 'Send verification code'}
               </button>
             </form>
           ) : (
@@ -171,7 +191,7 @@ export default function Login() {
                   inputMode="numeric"
                   autoComplete="one-time-code"
                   maxLength={8}
-                  placeholder="000000"
+                  placeholder="00000000"
                   value={code}
                   onChange={(e) => setCode(e.target.value)}
                   autoFocus
