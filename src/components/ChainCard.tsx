@@ -4,8 +4,15 @@ import { CHAIN_META, TOKENS, erc20Abi, SUPPORTED_CHAINS } from '../lib/chains'
 import { fmtAmount, shortAddr } from '../lib/format'
 import { CopyButton } from './CopyButton'
 
-export function ChainCard({ chain }: { chain: (typeof SUPPORTED_CHAINS)[number] }) {
-  const { address } = useAccount()
+export function ChainCard({
+  chain,
+  address: addressOverride,
+}: {
+  chain: (typeof SUPPORTED_CHAINS)[number]
+  address?: `0x${string}` | null
+}) {
+  const { address: connected } = useAccount()
+  const address = connected ?? addressOverride ?? undefined
   const meta = CHAIN_META[chain.id]
   const tokens = TOKENS[chain.id] ?? []
 

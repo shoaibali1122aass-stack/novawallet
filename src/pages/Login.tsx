@@ -43,7 +43,7 @@ export default function Login() {
     setBusy(true)
     try {
       const { data, error: rpcError } = await supabase.rpc('request_login_code', { p_email: clean })
-      if (rpcError) throw rpcError
+      if (rpcError) throw new Error(rpcError.message)
       const result = data as { ok?: boolean; error?: string; retry_after?: number } | null
       if (!result?.ok) {
         if (result?.error === 'rate_limit') {

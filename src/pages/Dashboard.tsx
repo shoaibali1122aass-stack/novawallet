@@ -1,3 +1,4 @@
+import { useCallback, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAccount } from 'wagmi'
 import { useAuth } from '../context/AuthContext'
@@ -7,30 +8,45 @@ import { BtcCard } from '../components/BtcCard'
 import { SolCard } from '../components/SolCard'
 import { SendPanel } from '../components/SendPanel'
 import { WalletButton } from '../components/WalletButton'
+import { WatchWalletCard } from '../components/WatchWalletCard'
 import { CopyButton } from '../components/CopyButton'
 import { shortAddr } from '../lib/format'
 
-function ReceiveCard() {
-  const { address, isConnected } = useAccount()
+function ReceiveCard({
+  address,
+  isConnected,
+}: {
+  address?: `0x${string}` | null
+  isConnected: boolean
+}) {
+  const watchOnly = Boolean(address) && !isConnected
   return (
     <div className="card p-6">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-bold text-white">Receive</h3>
+        <h3 className="text-sm font-bold text-white">Deposit / Receive</h3>
         <span className="badge border-white/10 bg-white/5 text-slate-400">EVM</span>
       </div>
-      {isConnected && address ? (
+      {address ? (
         <>
           <p className="mt-3 break-all rounded-xl border border-white/10 bg-ink-900/70 p-3 font-mono text-xs text-slate-300">
             {address}
           </p>
           <div className="mt-3 flex items-center justify-between">
-            <span className="text-[11px] text-slate-500">Use this address on any EVM network.</span>
+            <span className="text-[11px] text-slate-500">
+              {watchOnly ? 'Watch-only address.' : 'Use this address on any EVM network.'}
+            </span>
             <CopyButton value={address} label="Copy address" />
           </div>
+          {watchOnly && (
+            <p className="mt-2 text-[11px] leading-relaxed text-amber-400">
+              Deposits are safe to this address. To withdraw, connect the wallet that controls it.
+            </p>
+          )}
         </>
       ) : (
         <p className="mt-3 text-xs leading-relaxed text-slate-400">
-          Connect a wallet to see your receiving address. For Bitcoin or Solana, use the watch-only cards on the left.
+          Connect a wallet or add a watch-only address above to see your receiving address. For Bitcoin or Solana, use
+          the cards below.
         </p>
       )}
     </div>
@@ -39,7 +55,10 @@ function ReceiveCard() {
 
 export default function Dashboard() {
   const { profile } = useAuth()
-  const { isConnected } = useAccount()
+  const { address: connectedAddress, isConnected } = useAccount()
+  const [watchAddress, setWatchAddress] = useState<`0x${string}` | null>(null)
+  const handleWatchChange = useCallback((address: `0x${string}` | null) => setWatchAddress(address), [])
+  const displayAddress = connectedAddress ?? watchAddress ?? null
 
   return (
     <div className="space-y-6">
@@ -63,15 +82,21 @@ export default function Dashboard() {
               </svg>
             </span>
             <div>
-              <p className="text-sm font-semibold text-white">Connect a wallet to load balances</p>
+              <p className="text-sm font-semibold text-white">Connect a wallet or track an address</p>
               <p className="text-xs text-slate-400">
-                Balances are read directly from public RPCs. No keys or phrases are ever requested.
+                Balances are read directly from public RPCs. No keys or phrases are ever requested. You can also{' '}
+                <a href="#add-wallet" className="font-semibold text-brand-400 hover:underline">
+                  track any address
+                </a>{' '}
+                without connecting.
               </p>
             </div>
           </div>
           <WalletButton compact />
         </div>
       )}
+
+      <WatchWalletCard onChange={handleWatchChange} connected={isConnected} />
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-4 lg:col-span-2">
@@ -85,7 +110,7 @@ export default function Dashboard() {
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             {SUPPORTED_CHAINS.map((chain) => (
-              <ChainCard key={chain.id} chain={chain} />
+              <ChainCard key={chain.id} chain={chain} address={watchAddress} />
             ))}
           </div>
 
@@ -97,7 +122,7 @@ export default function Dashboard() {
         </div>
 
         <div className="space-y-4">
-          <ReceiveCard />
+          <ReceiveCard address={displayAddress} isConnected={isConnected} />
           <SendPanel />
 
           <div className="card p-5">

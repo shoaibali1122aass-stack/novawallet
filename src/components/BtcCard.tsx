@@ -8,9 +8,23 @@ type AddrStats = {
 }
 
 const KEY = 'nova_btc_address'
+const API_BASES = ['https://mempool.space', 'https://blockstream.info']
+
+async function fetchStats(base: string, address: string): Promise<AddrStats> {
+  const controller = new AbortController()
+  const timer = window.setTimeout(() => controller.abort(), 10000)
+  try {
+    const res = await fetch(`${base}/api/address/${encodeURIComponent(address)}`, { signal: controller.signal })
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    return (await res.json()) as AddrStats
+  } finally {
+    window.clearTimeout(timer)
+  }
+}
 
 export function BtcCard() {
   const [addr, setAddr] = useState('')
+  const [loadedAddr, setLoadedAddr] = useState('')
   const [data, setData] = useState<AddrStats | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -21,12 +35,22 @@ export function BtcCard() {
     setLoading(true)
     setError('')
     try {
-      const res = await fetch(`https://mempool.space/api/address/${encodeURIComponent(clean)}`)
-      if (!res.ok) throw new Error('Bitcoin address not found')
-      setData(await res.json())
+      let stats: AddrStats | null = null
+      for (const base of API_BASES) {
+        try {
+          stats = await fetchStats(base, clean)
+          break
+        } catch {
+          /* try the next API */
+        }
+      }
+      if (!stats) throw new Error('Could not load Bitcoin balance. Check the address and try again.')
+      setData(stats)
+      setLoadedAddr(clean)
       localStorage.setItem(KEY, clean)
     } catch (e) {
       setData(null)
+      setLoadedAddr('')
       setError(e instanceof Error ? e.message : 'Could not load balance')
     } finally {
       setLoading(false)
@@ -75,6 +99,11 @@ export function BtcCard() {
         {data && pending !== 0 && (
           <p className="mt-1 text-xs text-amber-400">Pending: {fmtAmount(pending, 8)} BTC</p>
         )}
+        {data && (
+          <p className="mt-2 text-[11px] leading-relaxed text-slate-500">
+            Deposit BTC to this address. Withdrawals happen inside your Bitcoin wallet.
+          </p>
+        )}
       </div>
 
       <form
@@ -84,7 +113,7 @@ export function BtcCard() {
           load(addr)
         }}
       >
-        <label className="label">Bitcoin address</label>
+        <label className="label">Bitcoin address (watch-only)</label>
         <div className="flex gap-2">
           <input
             className="input font-mono text-xs"
@@ -102,8 +131,8 @@ export function BtcCard() {
       {error && <p className="mt-2 text-xs text-rose-400">{error}</p>}
       {data && (
         <div className="mt-3 flex items-center justify-between gap-2">
-          <span className="truncate font-mono text-xs text-slate-500">{shortAddr(addr, 8)}</span>
-          <CopyButton value={addr} />
+          <span className="truncate font-mono text-xs text-slate-500">{shortAddr(loadedAddr, 8)}</span>
+          <CopyButton value={loadedAddr} />
         </div>
       )}
     </div>

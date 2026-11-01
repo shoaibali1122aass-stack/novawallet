@@ -14,7 +14,7 @@ const coins = [
 const features = [
   {
     title: 'Truly self-custody',
-    body: 'Connect MetaMask, Trust Wallet or any WalletConnect wallet. Keys are generated and stored on your device — never on our servers.',
+    body: 'Connect MetaMask, Trust Wallet or Coinbase Wallet, or track any address in watch-only mode. Keys stay in your wallet — never on our servers.',
     icon: (
       <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" />
     ),
@@ -48,8 +48,16 @@ const features = [
 
 const steps = [
   { n: '01', t: 'Create your account', d: 'Sign in with an email code. No password, no seed phrase, nothing stored on our side.' },
-  { n: '02', t: 'Connect your wallet', d: 'Use MetaMask, Trust Wallet or any WalletConnect-compatible wallet in one tap.' },
-  { n: '03', t: 'Track & transact', d: 'See every balance in one view and send only after you approve in your own wallet.' },
+  {
+    n: '02',
+    t: 'Connect or track a wallet',
+    d: 'Use MetaMask, Trust Wallet or Coinbase Wallet — or add any address in watch-only mode.',
+  },
+  {
+    n: '03',
+    t: 'Track & transact',
+    d: 'See every balance in one view and send EVM assets only after you approve in your own wallet.',
+  },
 ]
 
 export default function Landing() {
@@ -224,7 +232,7 @@ export default function Landing() {
             <div className="grid gap-4 sm:grid-cols-2">
               {[
                 ['Wallet signature', 'Every outbound transfer is signed on your device.'],
-                ['Email OTP', 'Single-use codes with 10-minute expiry and rate limits.'],
+                ['Email OTP', 'Single-use codes with short expiry and strict rate limits.'],
                 ['Withdrawal lock', 'Optional second factor before preparing a transfer.'],
                 ['Support-only admin', 'Admins manage accounts, not money.'],
               ].map(([t, d]) => (

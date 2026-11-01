@@ -1,5 +1,11 @@
-import { useState, type FormEvent } from 'react'
-import { useAccount, useSendTransaction, useWaitForTransactionReceipt, useWriteContract } from 'wagmi'
+import { useEffect, useState, type FormEvent } from 'react'
+import {
+  useAccount,
+  useSendTransaction,
+  useSwitchChain,
+  useWaitForTransactionReceipt,
+  useWriteContract,
+} from 'wagmi'
 import { isAddress, parseUnits } from 'viem'
 import { CHAIN_META, TOKENS, erc20Abi } from '../lib/chains'
 import { useAuth } from '../context/AuthContext'
@@ -28,6 +34,11 @@ export function SendPanel() {
   const { sendTransactionAsync, isPending: sending } = useSendTransaction()
   const { writeContractAsync, isPending: writing } = useWriteContract()
   const { isLoading: confirming, isSuccess } = useWaitForTransactionReceipt({ hash })
+  const { chains, switchChain, isPending: switching, error: switchError } = useSwitchChain()
+
+  useEffect(() => {
+    setAssetKey('native')
+  }, [chain?.id])
 
   if (!isConnected || !chain || !address) {
     return (
@@ -41,6 +52,7 @@ export function SendPanel() {
   }
 
   const meta = CHAIN_META[chain.id]
+  const supported = Boolean(meta)
   const tokens = TOKENS[chain.id] ?? []
   const assets: Asset[] = [
     { key: 'native', symbol: chain.nativeCurrency.symbol, decimals: chain.nativeCurrency.decimals, kind: 'native' },
@@ -67,7 +79,7 @@ export function SendPanel() {
     )
   }
 
-  const busy = sending || writing || confirming
+  const busy = sending || writing || confirming || switching
 
   async function submit(e: FormEvent) {
     e.preventDefault()
@@ -105,8 +117,35 @@ export function SendPanel() {
   return (
     <form onSubmit={submit} className="card space-y-4 p-6">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-bold text-white">Send on {meta.label}</h3>
+        <h3 className="text-sm font-bold text-white">Send on {meta?.label ?? chain.name}</h3>
         <span className="badge border-white/10 bg-white/5 font-mono text-slate-400">{shortAddr(address)}</span>
+      </div>
+
+      <div>
+        <label className="label">Network</label>
+        <select
+          className="input"
+          value={chain.id}
+          onChange={(e) => switchChain({ chainId: Number(e.target.value) })}
+          disabled={switching}
+        >
+          {!supported && (
+            <option value={chain.id} className="bg-ink-900">
+              {chain.name} (unsupported)
+            </option>
+          )}
+          {chains.map((c) => (
+            <option key={c.id} value={c.id} className="bg-ink-900">
+              {CHAIN_META[c.id]?.label ?? c.name}
+            </option>
+          ))}
+        </select>
+        {switchError && <p className="mt-1.5 text-xs text-rose-400">{switchError.message.split('\n')[0]}</p>}
+        {!supported && (
+          <p className="mt-1.5 text-xs leading-relaxed text-amber-400">
+            This network is not supported for in-app sending. Switch to Ethereum, BNB Chain, Polygon, Arbitrum or Base.
+          </p>
+        )}
       </div>
 
       <div>
@@ -142,8 +181,14 @@ export function SendPanel() {
         />
       </div>
 
-      <button className="btn-primary w-full" disabled={busy}>
-        {sending || writing ? 'Confirm in your wallet…' : confirming ? 'Waiting for confirmation…' : 'Review & send'}
+      <button className="btn-primary w-full" disabled={busy || !supported}>
+        {switching
+          ? 'Switching network…'
+          : sending || writing
+            ? 'Confirm in your wallet…'
+            : confirming
+              ? 'Waiting for confirmation…'
+              : 'Review & send'}
       </button>
 
       {error && <p className="text-xs text-rose-400">{error}</p>}
@@ -154,14 +199,16 @@ export function SendPanel() {
             {isSuccess ? 'Transaction confirmed' : 'Transaction submitted'} ·{' '}
             <span className="font-mono text-slate-300">{shortAddr(hash, 8)}</span>
           </p>
-          <a
-            href={`${meta.explorer}/tx/${hash}`}
-            target="_blank"
-            rel="noreferrer"
-            className="mt-1 inline-block font-semibold text-brand-400 hover:underline"
-          >
-            View on explorer →
-          </a>
+          {meta && (
+            <a
+              href={`${meta.explorer}/tx/${hash}`}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-1 inline-block font-semibold text-brand-400 hover:underline"
+            >
+              View on explorer →
+            </a>
+          )}
         </div>
       )}
 

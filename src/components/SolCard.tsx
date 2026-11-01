@@ -3,10 +3,35 @@ import { fmtAmount, shortAddr } from '../lib/format'
 import { CopyButton } from './CopyButton'
 
 const KEY = 'nova_sol_address'
-const RPC = 'https://solana-rpc.publicnode.com'
+const RPCS = ['https://solana-rpc.publicnode.com', 'https://api.mainnet-beta.solana.com']
+
+async function fetchBalance(rpc: string, address: string): Promise<number> {
+  const controller = new AbortController()
+  const timer = window.setTimeout(() => controller.abort(), 10000)
+  try {
+    const res = await fetch(rpc, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'getBalance',
+        params: [address],
+      }),
+      signal: controller.signal,
+    })
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    const json = (await res.json()) as { error?: { message?: string }; result?: { value?: number } }
+    if (json.error) throw new Error(json.error.message ?? 'Invalid Solana address')
+    return json.result?.value ?? 0
+  } finally {
+    window.clearTimeout(timer)
+  }
+}
 
 export function SolCard() {
   const [addr, setAddr] = useState('')
+  const [loadedAddr, setLoadedAddr] = useState('')
   const [lamports, setLamports] = useState<number | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -17,22 +42,27 @@ export function SolCard() {
     setLoading(true)
     setError('')
     try {
-      const res = await fetch(RPC, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          jsonrpc: '2.0',
-          id: 1,
-          method: 'getBalance',
-          params: [clean],
-        }),
-      })
-      const json = await res.json()
-      if (json.error) throw new Error(json.error.message ?? 'Invalid Solana address')
-      setLamports(json.result?.value ?? 0)
+      let value: number | null = null
+      let lastError: unknown = null
+      for (const rpc of RPCS) {
+        try {
+          value = await fetchBalance(rpc, clean)
+          break
+        } catch (e) {
+          lastError = e
+        }
+      }
+      if (value === null) {
+        throw lastError instanceof Error
+          ? lastError
+          : new Error('Could not load Solana balance. Check the address and try again.')
+      }
+      setLamports(value)
+      setLoadedAddr(clean)
       localStorage.setItem(KEY, clean)
     } catch (e) {
       setLamports(null)
+      setLoadedAddr('')
       setError(e instanceof Error ? e.message : 'Could not load balance')
     } finally {
       setLoading(false)
@@ -73,6 +103,11 @@ export function SolCard() {
           {lamports !== null ? `${fmtAmount(sol, 6)} ` : '— '}
           <span className="text-sm font-semibold text-slate-400">SOL</span>
         </p>
+        {lamports !== null && (
+          <p className="mt-2 text-[11px] leading-relaxed text-slate-500">
+            Deposit SOL to this address. Withdrawals happen inside your Solana wallet.
+          </p>
+        )}
       </div>
 
       <form
@@ -82,7 +117,7 @@ export function SolCard() {
           load(addr)
         }}
       >
-        <label className="label">Solana address</label>
+        <label className="label">Solana address (watch-only)</label>
         <div className="flex gap-2">
           <input
             className="input font-mono text-xs"
@@ -100,8 +135,8 @@ export function SolCard() {
       {error && <p className="mt-2 text-xs text-rose-400">{error}</p>}
       {lamports !== null && (
         <div className="mt-3 flex items-center justify-between gap-2">
-          <span className="truncate font-mono text-xs text-slate-500">{shortAddr(addr, 8)}</span>
-          <CopyButton value={addr} />
+          <span className="truncate font-mono text-xs text-slate-500">{shortAddr(loadedAddr, 8)}</span>
+          <CopyButton value={loadedAddr} />
         </div>
       )}
     </div>

@@ -37,11 +37,15 @@ export function AuthorizationGate({ onAuthorized }: { onAuthorized: () => void }
         `Nonce: ${Date.now()}\n\n` +
         `Signing proves you control this wallet. This is not a transaction and costs no gas.`
       await signMessageAsync({ message })
-      const { error: otpError } = await supabase.auth.signInWithOtp({
-        email,
-        options: { shouldCreateUser: false },
-      })
-      if (otpError) throw otpError
+      const { data, error: rpcError } = await supabase.rpc('request_login_code', { p_email: email })
+      if (rpcError) throw new Error(rpcError.message)
+      const result = (data ?? null) as { ok?: boolean; error?: string; retry_after?: number } | null
+      if (!result?.ok) {
+        if (result?.error === 'rate_limit' || result?.error === 'cooldown') {
+          throw new Error(`Please wait ${result.retry_after ?? 45}s before requesting another code.`)
+        }
+        throw new Error('Could not send the email code. Try again in a moment.')
+      }
       await logAudit('withdrawal_authorization_requested', { wallet: address })
       setStep('otp')
     } catch (e) {
@@ -55,15 +59,22 @@ export function AuthorizationGate({ onAuthorized }: { onAuthorized: () => void }
     setError('')
     setBusy(true)
     try {
-      const { error: verifyError } = await supabase.auth.verifyOtp({
-        email,
-        token: code.trim(),
-        type: 'email',
-      })
-      if (verifyError) throw verifyError
-      sessionStorage.setItem(AUTH_KEY, String(Date.now() + 10 * 60 * 1000))
-      await logAudit('withdrawal_authorized', { wallet: address })
-      onAuthorized()
+      let lastError: unknown = null
+      for (const type of ['email', 'magiclink', 'signup'] as const) {
+        const { data, error: verifyError } = await supabase.auth.verifyOtp({
+          email,
+          token: code.trim(),
+          type,
+        })
+        if (!verifyError && data.session) {
+          sessionStorage.setItem(AUTH_KEY, String(Date.now() + 10 * 60 * 1000))
+          await logAudit('withdrawal_authorized', { wallet: address })
+          onAuthorized()
+          return
+        }
+        lastError = verifyError
+      }
+      throw lastError instanceof Error ? lastError : new Error('Invalid or expired code')
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Invalid or expired code')
     } finally {
@@ -96,14 +107,14 @@ export function AuthorizationGate({ onAuthorized }: { onAuthorized: () => void }
             <label className="label">Email verification code</label>
             <input
               className="input text-center font-mono text-lg tracking-[0.4em]"
-              placeholder="000000"
+              placeholder="00000000"
               inputMode="numeric"
               maxLength={8}
               value={code}
               onChange={(e) => setCode(e.target.value)}
             />
             <p className="mt-1.5 text-xs text-slate-500">
-              Sent to {email}. It can take a few seconds to arrive.
+              Enter the 8-digit code sent to {email}. It can take a few seconds to arrive.
             </p>
           </div>
           <button className="btn-primary w-full" onClick={confirm} disabled={busy || code.trim().length < 6}>

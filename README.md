@@ -2,21 +2,25 @@
 
 A professional, **non-custodial** multi-chain wallet dashboard with an email-OTP login and a **support/security-only admin panel**.
 
-> **Security model:** NovaWallet never has a seed-phrase or private-key field. Keys stay inside the user's own wallet (MetaMask, Trust Wallet, WalletConnect). The admin can manage accounts, tickets and security review — but can never see keys, balances, or move funds.
+> **Security model:** NovaWallet never has a seed-phrase or private-key field. Keys stay inside the user's own wallet (MetaMask, Trust Wallet, Coinbase Wallet). The admin can manage accounts, tickets and security review — but can never see keys, balances, or move funds.
 
 ## Features
 
 - Email OTP sign-in (passwordless, single-use codes)
 - Multi-chain EVM balances via public RPC: Ethereum, BNB Chain, Polygon, Arbitrum, Base
 - Native + USDT / USDC / DAI balances
-- Watch-only BTC (mempool.space) and SOL (public RPC) lookups
-- Send flow signed inside the user's wallet (native + ERC-20)
+- Watch-only BTC (mempool.space, Blockstream fallback) and SOL (public RPC fallback) lookups
+- Watch-only EVM address tracking for any `0x` address
+- Mobile wallet deep links (MetaMask, Trust Wallet, Coinbase Wallet)
+- Send flow signed inside the user's wallet (native + ERC-20) with an in-app network switcher
 - Optional **withdrawal lock**: wallet signature + fresh email code before sending
 - Wallet ownership verification (sign a message)
 - Support tickets with admin replies
 - Security audit log
 - Admin console: users, suspend/unsuspend, tickets, audit trail (no custody)
 - Row Level Security (RLS) enforced in Postgres
+
+> **Sending scope:** EVM networks only (Ethereum, BNB Chain, Polygon, Arbitrum, Base). BTC and SOL are watch-only; withdraw from the wallet that controls those addresses.
 
 ## Stack
 
@@ -25,13 +29,16 @@ Vite · React · TypeScript · Tailwind CSS · wagmi/viem · Supabase (Auth + Po
 ## 1. Supabase setup
 
 1. Create a project at <https://supabase.com>.
-2. Open **SQL Editor** and run the contents of [`supabase/schema.sql`](supabase/schema.sql).
+2. Open **SQL Editor** and run [`supabase/schema.sql`](supabase/schema.sql), then [`supabase/otp_rpc.sql`](supabase/otp_rpc.sql).
 3. **Authentication → Providers → Email**: keep Email enabled.
-4. **Authentication → Email Templates → Magic Link**: make sure the body contains the 6-digit token:
-   ```html
-   <p>Your NovaWallet code is: <strong>{{ .Token }}</strong></p>
-   ```
-   (Without `{{ .Token }}` the email only contains a magic link.)
+4. **Email OTP delivery** (the app does not rely on Supabase email templates):
+   - Store the service-role key and a GitHub token in Vault:
+     ```sql
+     select vault.create_secret('<service_role_key>', 'nova_service_role_key');
+     select vault.create_secret('<github_token_with_repo_scope>', 'nova_github_token');
+     ```
+   - Add repository secrets `MAIL_USER` and `MAIL_PASS` (Gmail app password) in GitHub → Settings → Secrets and variables → Actions.
+   - The workflow [`.github/workflows/send-otp.yml`](.github/workflows/send-otp.yml) emails the 8-digit code on the `send-otp` repository-dispatch event.
 5. **Authentication → URL Configuration**: add your deployed URL (e.g. `https://your-app.vercel.app`) to **Site URL** and **Redirect URLs**.
 6. Copy **Project URL** and **anon public key** from **Settings → API**.
 7. Make yourself admin (replace the email):
@@ -39,10 +46,11 @@ Vite · React · TypeScript · Tailwind CSS · wagmi/viem · Supabase (Auth + Po
    update public.profiles set role = 'admin' where email = 'you@example.com';
    ```
 
-## 2. WalletConnect (optional but recommended for mobile)
+## 2. WalletConnect (optional)
 
-Create a project at <https://cloud.reown.com> and copy the Project ID.
-Without it, the app still works with injected wallets (MetaMask etc.).
+Create a project at <https://cloud.reown.com>, copy the Project ID and set `VITE_WALLETCONNECT_PROJECT_ID`.
+Without it, the app works with injected wallets and mobile deep links (MetaMask, Trust Wallet, Coinbase Wallet).
+Watch-only address tracking works with no wallet extension at all.
 
 ## 2b. Configure without redeploying (runtime setup)
 
@@ -110,12 +118,15 @@ This is enforced by Postgres RLS and by the fact that the app has no key materia
 
 ```
 src/
-  components/   Layout, WalletButton, ChainCard, BtcCard, SolCard, SendPanel, guards
+  components/   Layout, WalletButton, ChainCard, WatchWalletCard, BtcCard, SolCard, SendPanel, guards
   context/      AuthContext (Supabase session + profile)
   lib/          supabase client, wagmi config, chain/token map, audit, format
   pages/        Landing, Login, Dashboard, Security, Support, Admin
 supabase/
   schema.sql    tables, RLS, admin guards, triggers
+  otp_rpc.sql   rate-limited request_login_code() + otp_requests table
+.github/
+  workflows/send-otp.yml   Gmail SMTP delivery of the 8-digit code
 ```
 
 ## License
