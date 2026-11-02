@@ -129,7 +129,7 @@ export default function Swap() {
     setQuoteLoading(true)
     try {
       const fromAmount = parseUnits(amount, from.decimals).toString()
-      const url = new URL('https://li.fi/v1/quote')
+      const url = new URL('https://li.quest/v1/quote')
       url.searchParams.set('fromChain', String(chain.id))
       url.searchParams.set('toChain', String(chain.id))
       url.searchParams.set('fromToken', from.kind === 'native' ? ZERO : from.address!)
