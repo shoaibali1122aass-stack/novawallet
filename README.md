@@ -16,7 +16,8 @@ A professional, **non-custodial** multi-chain wallet dashboard with an email-OTP
 - Dedicated **Deposit** page (per-network receive address, token contracts, BTC/SOL watch-only cards)
 - Dedicated **Withdraw** page with the send flow signed inside the user's wallet (native + ERC-20) and an in-app network switcher
 - **Swap** page using the LI.FI aggregator, signed in the user's wallet (with token approval handling)
-- Wallet, watch addresses and withdrawal authorization are stored **per signed-in account** on the device
+- Wallet, watch addresses (EVM/BTC/SOL) and withdrawal authorization are stored **per signed-in account** on the device
+- Deep links (`/dashboard`, `/deposit`, `/withdraw`, `/swap`, …) are served as pre-rendered route shells on GitHub Pages
 - In-app notification bell + toasts for detected deposits and submitted/confirmed withdrawals and swaps
 - Dashboard quick actions for Deposit, Withdraw and Swap
 - Optional **withdrawal lock**: wallet signature + fresh email code before sending

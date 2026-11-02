@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
+import { useAuth } from '../context/AuthContext'
+import { scopedGet, scopedSet } from '../lib/scopedStorage'
 import { fmtAmount, shortAddr } from '../lib/format'
 import { CopyButton } from './CopyButton'
 
-const KEY = 'nova_sol_address'
+const SOL_BASE = 'nova_sol_address'
 const RPCS = ['https://solana-rpc.publicnode.com', 'https://api.mainnet-beta.solana.com']
 
 async function fetchBalance(rpc: string, address: string): Promise<number> {
@@ -30,6 +32,8 @@ async function fetchBalance(rpc: string, address: string): Promise<number> {
 }
 
 export function SolCard() {
+  const { profile } = useAuth()
+  const userId = profile?.id
   const [addr, setAddr] = useState('')
   const [loadedAddr, setLoadedAddr] = useState('')
   const [lamports, setLamports] = useState<number | null>(null)
@@ -59,7 +63,7 @@ export function SolCard() {
       }
       setLamports(value)
       setLoadedAddr(clean)
-      localStorage.setItem(KEY, clean)
+      scopedSet(SOL_BASE, userId, clean)
     } catch (e) {
       setLamports(null)
       setLoadedAddr('')
@@ -70,12 +74,16 @@ export function SolCard() {
   }
 
   useEffect(() => {
-    const saved = localStorage.getItem(KEY)
+    setAddr('')
+    setLoadedAddr('')
+    setLamports(null)
+    setError('')
+    const saved = scopedGet(SOL_BASE, userId)
     if (saved) {
       setAddr(saved)
       load(saved)
     }
-  }, [])
+  }, [userId])
 
   const sol = lamports !== null ? lamports / 1e9 : 0
 

@@ -4,6 +4,7 @@ import { useAccount, useBalance, useReadContracts } from 'wagmi'
 import { useAuth } from '../context/AuthContext'
 import { CHAIN_META, SUPPORTED_CHAINS, TOKENS, erc20Abi, type SupportedChainId } from '../lib/chains'
 import { getKeystore } from '../lib/localWallet'
+import { scopedGet } from '../lib/scopedStorage'
 import { depositAlertsSuppressed, notify } from '../lib/notifications'
 
 function seenKey(userId: string, chainId: number, asset: string) {
@@ -110,12 +111,8 @@ export function NotificationWatcher() {
   const { profile } = useAuth()
   const fallback = useMemo(() => {
     if (!profile?.id) return null
-    try {
-      const watch = localStorage.getItem(`nova_evm_watch_address:${profile.id}`)
-      if (watch && /^0x[0-9a-fA-F]{40}$/.test(watch)) return watch as `0x${string}`
-    } catch {
-      /* ignore */
-    }
+    const watch = scopedGet('nova_evm_watch_address', profile.id)
+    if (watch && /^0x[0-9a-fA-F]{40}$/.test(watch)) return watch as `0x${string}`
     return getKeystore()?.address ?? null
   }, [profile?.id])
 

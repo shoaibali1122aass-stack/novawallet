@@ -98,6 +98,11 @@ export default function Swap() {
     setStatus('')
   }, [chain?.id])
 
+  useEffect(() => {
+    setQuote(null)
+    setStatus('')
+  }, [amount, fromKey, toKey])
+
   const from = assets.find((a) => a.key === fromKey) ?? assets[0]
   const to = assets.find((a) => a.key === toKey) ?? assets[assets.length - 1]
   const busyTx = sending || approving || busy || switching

@@ -27,7 +27,13 @@ jobs:
       - run: npm run build
         env:
           VITE_BASE_PATH: /novawallet/
-      - run: cp dist/index.html dist/404.html
+      - name: Create SPA route shells
+        run: |
+          cp dist/index.html dist/404.html
+          for route in dashboard deposit withdraw swap security support admin login setup; do
+            mkdir -p "dist/$route"
+            cp dist/index.html "dist/$route/index.html"
+          done
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist

@@ -4,27 +4,26 @@ import { useAccount } from 'wagmi'
 import { useAuth } from '../context/AuthContext'
 import { CHAIN_META, SUPPORTED_CHAINS, TOKENS } from '../lib/chains'
 import { getKeystore } from '../lib/localWallet'
+import { scopedGet } from '../lib/scopedStorage'
 import { CopyButton } from '../components/CopyButton'
 import { BtcCard } from '../components/BtcCard'
 import { SolCard } from '../components/SolCard'
 import { shortAddr } from '../lib/format'
 
-const WATCH_KEY = 'nova_evm_watch_address'
-
-function savedEvmAddress(): `0x${string}` | null {
-  try {
-    const watch = localStorage.getItem(WATCH_KEY)
-    if (watch && /^0x[0-9a-fA-F]{40}$/.test(watch)) return watch as `0x${string}`
-  } catch {
-    /* ignore */
-  }
-  return getKeystore()?.address ?? null
-}
+const WATCH_BASE = 'nova_evm_watch_address'
 
 export default function Deposit() {
   const { address: connected, isConnected } = useAccount()
   const { profile } = useAuth()
-  const fallback = useMemo(savedEvmAddress, [])
+  const fallback = useMemo(() => {
+    try {
+      const watch = scopedGet(WATCH_BASE, profile?.id)
+      if (watch && /^0x[0-9a-fA-F]{40}$/.test(watch)) return watch as `0x${string}`
+    } catch {
+      /* ignore */
+    }
+    return getKeystore()?.address ?? null
+  }, [profile?.id])
   const linked = (profile?.wallet_address ?? null) as `0x${string}` | null
   const address = connected ?? fallback ?? linked ?? null
 

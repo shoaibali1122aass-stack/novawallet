@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
+import { scopedGet, scopedSet } from '../lib/scopedStorage'
 import { fmtAmount, shortAddr } from '../lib/format'
 import { CopyButton } from './CopyButton'
 
@@ -9,10 +10,7 @@ type AddrStats = {
 }
 
 const API_BASES = ['https://mempool.space', 'https://blockstream.info']
-
-function btcKey(userId?: string | null) {
-  return userId ? `nova_btc_address:${userId}` : 'nova_btc_address'
-}
+const BTC_BASE = 'nova_btc_address'
 
 async function fetchStats(base: string, address: string): Promise<AddrStats> {
   const controller = new AbortController()
@@ -28,7 +26,7 @@ async function fetchStats(base: string, address: string): Promise<AddrStats> {
 
 export function BtcCard() {
   const { profile } = useAuth()
-  const key = btcKey(profile?.id)
+  const userId = profile?.id
   const [addr, setAddr] = useState('')
   const [loadedAddr, setLoadedAddr] = useState('')
   const [data, setData] = useState<AddrStats | null>(null)
@@ -53,7 +51,7 @@ export function BtcCard() {
       if (!stats) throw new Error('Could not load Bitcoin balance. Check the address and try again.')
       setData(stats)
       setLoadedAddr(clean)
-      localStorage.setItem(key, clean)
+      scopedSet(BTC_BASE, userId, clean)
     } catch (e) {
       setData(null)
       setLoadedAddr('')
@@ -68,12 +66,12 @@ export function BtcCard() {
     setLoadedAddr('')
     setData(null)
     setError('')
-    const saved = localStorage.getItem(key)
+    const saved = scopedGet(BTC_BASE, userId)
     if (saved) {
       setAddr(saved)
       load(saved)
     }
-  }, [key])
+  }, [userId])
 
   const confirmed = data
     ? (data.chain_stats.funded_txo_sum - data.chain_stats.spent_txo_sum) / 1e8
