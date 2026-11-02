@@ -1,16 +1,64 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { useAccount } from 'wagmi'
+import { useAccount, useBalance, useReadContracts } from 'wagmi'
+import { formatUnits } from 'viem'
 import { useAuth } from '../context/AuthContext'
-import { CHAIN_META, SUPPORTED_CHAINS, TOKENS } from '../lib/chains'
+import { CHAIN_META, SUPPORTED_CHAINS, TOKENS, erc20Abi, type SupportedChainId } from '../lib/chains'
 import { getKeystore } from '../lib/localWallet'
 import { scopedGet } from '../lib/scopedStorage'
 import { CopyButton } from '../components/CopyButton'
 import { BtcCard } from '../components/BtcCard'
 import { SolCard } from '../components/SolCard'
-import { shortAddr } from '../lib/format'
+import { fmtAmount, shortAddr } from '../lib/format'
 
 const WATCH_BASE = 'nova_evm_watch_address'
+
+function DepositBalances({ address, chainId }: { address: `0x${string}`; chainId: SupportedChainId }) {
+  const tokens = TOKENS[chainId] ?? []
+  const meta = CHAIN_META[chainId]
+  const native = useBalance({
+    address,
+    chainId,
+    query: { enabled: Boolean(address), refetchInterval: 20_000 },
+  })
+  const reads = useReadContracts({
+    contracts: tokens.map((t) => ({
+      address: t.address,
+      abi: erc20Abi,
+      functionName: 'balanceOf' as const,
+      args: [address] as const,
+      chainId,
+    })),
+    query: { enabled: Boolean(address), refetchInterval: 30_000 },
+  })
+  const nativeValue = native.data ? Number(formatUnits(native.data.value, native.data.decimals)) : 0
+
+  return (
+    <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.02] p-3">
+      <p className="text-[11px] uppercase tracking-wider text-slate-500">Your balance on {meta?.label}</p>
+      <div className="mt-2 space-y-1.5">
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-slate-300">{native.data?.symbol ?? meta?.coin ?? 'Native'}</span>
+          <span className="font-mono text-slate-200">
+            {native.isLoading ? 'Loading…' : `${fmtAmount(nativeValue, 6)}`}
+          </span>
+        </div>
+        {tokens.map((t, i) => {
+          const res = reads.data?.[i]?.result as bigint | undefined
+          const value = res !== undefined ? Number(formatUnits(res, t.decimals)) : 0
+          return (
+            <div key={t.address} className="flex items-center justify-between text-sm">
+              <span className="text-slate-300">{t.symbol}</span>
+              <span className="font-mono text-slate-200">
+                {reads.isLoading ? 'Loading…' : fmtAmount(value, 4)}
+              </span>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
 
 export default function Deposit() {
   const { address: connected, isConnected } = useAccount()
@@ -112,6 +160,8 @@ export default function Deposit() {
                 })}
               </div>
             </div>
+
+            <DepositBalances address={address} chainId={chain.id} />
 
             <div className="mt-4 rounded-xl border border-amber-500/25 bg-amber-500/5 p-3 text-[11px] leading-relaxed text-amber-300">
               Send only {meta.coin} or the listed tokens on {meta.label} to this address. Assets sent on the wrong

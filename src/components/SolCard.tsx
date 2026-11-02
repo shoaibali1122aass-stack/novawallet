@@ -1,11 +1,16 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useSyncExternalStore } from 'react'
 import { useAuth } from '../context/AuthContext'
+import { getKeystore, localWalletStore } from '../lib/localWallet'
 import { scopedGet, scopedSet } from '../lib/scopedStorage'
 import { fmtAmount, shortAddr } from '../lib/format'
 import { CopyButton } from './CopyButton'
 
 const SOL_BASE = 'nova_sol_address'
-const RPCS = ['https://solana-rpc.publicnode.com', 'https://api.mainnet-beta.solana.com']
+const RPCS = [
+  'https://solana-rpc.publicnode.com',
+  'https://api.mainnet-beta.solana.com',
+  'https://solana.drpc.org',
+]
 
 async function fetchBalance(rpc: string, address: string): Promise<number> {
   const controller = new AbortController()
@@ -34,17 +39,25 @@ async function fetchBalance(rpc: string, address: string): Promise<number> {
 export function SolCard() {
   const { profile } = useAuth()
   const userId = profile?.id
+  const wallet = useSyncExternalStore(
+    localWalletStore.subscribe,
+    localWalletStore.getSnapshot,
+    localWalletStore.getSnapshot,
+  )
   const [addr, setAddr] = useState('')
   const [loadedAddr, setLoadedAddr] = useState('')
   const [lamports, setLamports] = useState<number | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  async function load(a: string) {
+  const derivedAddress = getKeystore()?.solAddress ?? ''
+
+  async function load(a: string, persist = false) {
     const clean = a.trim()
     if (!clean) return
     setLoading(true)
     setError('')
+    setLoadedAddr(clean)
     try {
       let value: number | null = null
       let lastError: unknown = null
@@ -62,11 +75,9 @@ export function SolCard() {
           : new Error('Could not load Solana balance. Check the address and try again.')
       }
       setLamports(value)
-      setLoadedAddr(clean)
-      scopedSet(SOL_BASE, userId, clean)
+      if (persist) scopedSet(SOL_BASE, userId, clean)
     } catch (e) {
       setLamports(null)
-      setLoadedAddr('')
       setError(e instanceof Error ? e.message : 'Could not load balance')
     } finally {
       setLoading(false)
@@ -74,16 +85,15 @@ export function SolCard() {
   }
 
   useEffect(() => {
-    setAddr('')
-    setLoadedAddr('')
     setLamports(null)
     setError('')
     const saved = scopedGet(SOL_BASE, userId)
-    if (saved) {
-      setAddr(saved)
-      load(saved)
-    }
-  }, [userId])
+    const initial = saved || getKeystore()?.solAddress || ''
+    setAddr(initial)
+    setLoadedAddr(initial)
+    if (initial) load(initial)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, wallet.address])
 
   const sol = lamports !== null ? lamports / 1e9 : 0
 
@@ -108,7 +118,7 @@ export function SolCard() {
       <div className="mt-5">
         <p className="text-xs uppercase tracking-wider text-slate-500">Balance</p>
         <p className="mt-1 font-mono text-2xl font-bold text-white">
-          {lamports !== null ? `${fmtAmount(sol, 6)} ` : '— '}
+          {lamports !== null ? `${fmtAmount(sol, 6)} ` : loading ? 'Loading… ' : '— '}
           <span className="text-sm font-semibold text-slate-400">SOL</span>
         </p>
         {lamports !== null && (
@@ -122,10 +132,12 @@ export function SolCard() {
         className="mt-4 space-y-2 border-t border-white/5 pt-4"
         onSubmit={(e) => {
           e.preventDefault()
-          load(addr)
+          load(addr, true)
         }}
       >
-        <label className="label">Solana address (watch-only)</label>
+        <label className="label">
+          Solana address {derivedAddress ? '(your NovaWallet address)' : '(watch-only)'}
+        </label>
         <div className="flex gap-2">
           <input
             className="input font-mono text-xs"
@@ -141,7 +153,7 @@ export function SolCard() {
       </form>
 
       {error && <p className="mt-2 text-xs text-rose-400">{error}</p>}
-      {lamports !== null && (
+      {loadedAddr && (
         <div className="mt-3 flex items-center justify-between gap-2">
           <span className="truncate font-mono text-xs text-slate-500">{shortAddr(loadedAddr, 8)}</span>
           <CopyButton value={loadedAddr} />

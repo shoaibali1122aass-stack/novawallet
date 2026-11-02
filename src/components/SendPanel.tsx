@@ -1,18 +1,20 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import {
   useAccount,
+  useBalance,
+  useReadContract,
   useSendTransaction,
   useSwitchChain,
   useWaitForTransactionReceipt,
   useWriteContract,
 } from 'wagmi'
-import { isAddress, parseUnits } from 'viem'
+import { formatUnits, isAddress, parseUnits } from 'viem'
 import { CHAIN_META, TOKENS, erc20Abi, type SupportedChainId } from '../lib/chains'
 import { useAuth } from '../context/AuthContext'
 import { logAudit } from '../lib/audit'
 import { notify } from '../lib/notifications'
 import { AuthorizationGate, isWithdrawalAuthorized } from './AuthorizationGate'
-import { shortAddr } from '../lib/format'
+import { fmtAmount, shortAddr } from '../lib/format'
 
 type Asset = {
   key: string
@@ -20,6 +22,44 @@ type Asset = {
   decimals: number
   kind: 'native' | 'token'
   address?: `0x${string}`
+}
+
+function AvailableBalance({
+  address,
+  chainId,
+  asset,
+}: {
+  address: `0x${string}`
+  chainId: SupportedChainId
+  asset: Asset
+}) {
+  const native = useBalance({
+    address,
+    chainId,
+    query: { enabled: asset.kind === 'native', refetchInterval: 20_000 },
+  })
+  const token = useReadContract({
+    address: asset.address,
+    abi: erc20Abi,
+    functionName: 'balanceOf',
+    args: [address],
+    chainId,
+    query: { enabled: asset.kind === 'token', refetchInterval: 20_000 },
+  })
+
+  const raw = asset.kind === 'native' ? native.data?.value : (token.data as bigint | undefined)
+  const decimals = asset.kind === 'native' ? (native.data?.decimals ?? asset.decimals) : asset.decimals
+  const value = raw !== undefined ? Number(formatUnits(raw, decimals)) : null
+  const loading = asset.kind === 'native' ? native.isLoading : token.isLoading
+
+  return (
+    <div className="flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2">
+      <span className="text-xs text-slate-400">Available balance</span>
+      <span className="font-mono text-sm font-semibold text-slate-200">
+        {loading ? 'Loading…' : value === null ? '—' : `${fmtAmount(value, 6)} ${asset.symbol}`}
+      </span>
+    </div>
+  )
 }
 
 export function SendPanel() {
@@ -195,6 +235,8 @@ export function SendPanel() {
           onChange={(e) => setAmount(e.target.value)}
         />
       </div>
+
+      <AvailableBalance address={address} chainId={chain.id} asset={asset} />
 
       <button className="btn-primary w-full" disabled={busy || !supported}>
         {switching

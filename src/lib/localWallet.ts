@@ -1,5 +1,6 @@
 import { generateMnemonic, mnemonicToAccount, privateKeyToAccount, english } from 'viem/accounts'
 import type { LocalAccount } from 'viem/accounts'
+import { deriveWalletAddresses } from './addresses'
 
 const STORAGE_KEY = 'nova_local_keystore'
 const PBKDF2_ITERATIONS = 210_000
@@ -16,6 +17,8 @@ export type Keystore = {
   v: 1
   kind: KeystoreKind
   address: `0x${string}`
+  btcAddress?: string
+  solAddress?: string
   salt: string
   iv: string
   data: string
@@ -205,7 +208,10 @@ export async function encryptSecret(
   }
 }
 
-export async function decryptKeystore(keystore: Keystore, password: string): Promise<LocalAccount> {
+export async function unlockKeystore(
+  keystore: Keystore,
+  password: string,
+): Promise<{ account: LocalAccount; secret: string }> {
   assertCrypto()
   const salt = fromBase64(keystore.salt)
   const iv = fromBase64(keystore.iv)
@@ -221,9 +227,26 @@ export async function decryptKeystore(keystore: Keystore, password: string): Pro
     throw new Error('Incorrect password.')
   }
   const secret = new TextDecoder().decode(plain)
-  const next = keystore.kind === 'privateKey' ? accountFromPrivateKey(secret) : accountFromMnemonic(secret)
-  if (next.address.toLowerCase() !== keystore.address.toLowerCase()) {
+  const account = keystore.kind === 'privateKey' ? accountFromPrivateKey(secret) : accountFromMnemonic(secret)
+  if (account.address.toLowerCase() !== keystore.address.toLowerCase()) {
     throw new Error('The saved wallet is corrupted.')
   }
-  return next
+  return { account, secret }
+}
+
+export async function decryptKeystore(keystore: Keystore, password: string): Promise<LocalAccount> {
+  return (await unlockKeystore(keystore, password)).account
+}
+
+export function withDerivedAddresses(keystore: Keystore, secret: string): Keystore {
+  try {
+    const derived = deriveWalletAddresses(secret, keystore.kind)
+    return {
+      ...keystore,
+      btcAddress: derived.btcAddress ?? keystore.btcAddress,
+      solAddress: derived.solAddress ?? keystore.solAddress,
+    }
+  } catch {
+    return keystore
+  }
 }

@@ -3,6 +3,8 @@ import { useAccount } from 'wagmi'
 import { useAuth } from '../context/AuthContext'
 import { SendPanel } from '../components/SendPanel'
 import { WalletButton } from '../components/WalletButton'
+import { BtcCard } from '../components/BtcCard'
+import { SolCard } from '../components/SolCard'
 
 export default function Withdraw() {
   const { profile } = useAuth()
@@ -82,6 +84,18 @@ export default function Withdraw() {
               🔔 Withdrawal submitted and confirmed updates appear in the notification bell.
             </p>
           </div>
+        </div>
+      </div>
+
+      <div>
+        <h2 className="text-sm font-bold uppercase tracking-wider text-slate-400">Bitcoin &amp; Solana balances</h2>
+        <p className="mt-1 text-xs text-slate-500">
+          These balances are read from the addresses saved to your account. Withdrawals happen in the wallet that holds
+          the keys.
+        </p>
+        <div className="mt-3 grid gap-4 sm:grid-cols-2">
+          <BtcCard />
+          <SolCard />
         </div>
       </div>
     </div>

@@ -3,13 +3,14 @@ import { useAccount, useConnect, useDisconnect } from 'wagmi'
 import {
   accountFromMnemonic,
   createMnemonic,
-  decryptKeystore,
   encryptSecret,
   getKeystore,
   localWalletStore,
   parseSecret,
   removeKeystore,
   saveKeystore,
+  unlockKeystore,
+  withDerivedAddresses,
   type Keystore,
   type KeystoreKind,
 } from '../lib/localWallet'
@@ -202,7 +203,8 @@ export function LocalWalletCard() {
     setBusy(true)
     try {
       const account = accountFromMnemonic(mnemonic)
-      const next = await encryptSecret(mnemonic, password, 'mnemonic', account.address)
+      const encrypted = await encryptSecret(mnemonic, password, 'mnemonic', account.address)
+      const next = withDerivedAddresses(encrypted, mnemonic)
       saveKeystore(next)
       setKeystore(next)
       localWalletStore.setAccount(account)
@@ -244,7 +246,8 @@ export function LocalWalletCard() {
     setBusy(true)
     try {
       const parsed = parseSecret(importSecret.secret)
-      const next = await encryptSecret(parsed.secret, password, parsed.kind, parsed.account.address)
+      const encrypted = await encryptSecret(parsed.secret, password, parsed.kind, parsed.account.address)
+      const next = withDerivedAddresses(encrypted, parsed.secret)
       saveKeystore(next)
       setKeystore(next)
       localWalletStore.setAccount(parsed.account)
@@ -263,7 +266,12 @@ export function LocalWalletCard() {
     setError('')
     setBusy(true)
     try {
-      const account = await decryptKeystore(keystore, password)
+      const { account, secret } = await unlockKeystore(keystore, password)
+      const next = withDerivedAddresses(keystore, secret)
+      if (next.btcAddress !== keystore.btcAddress || next.solAddress !== keystore.solAddress) {
+        saveKeystore(next)
+        setKeystore(next)
+      }
       localWalletStore.setAccount(account)
       await autoConnect()
       finish('Wallet unlocked.')
