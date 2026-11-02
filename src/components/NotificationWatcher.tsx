@@ -1,12 +1,11 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect } from 'react'
 import { formatUnits } from 'viem'
-import { useAccount, useBalance, useReadContracts } from 'wagmi'
+import { useBalance, useReadContracts } from 'wagmi'
 import { useAuth } from '../context/AuthContext'
 import { CHAIN_META, SUPPORTED_CHAINS, TOKENS, erc20Abi, type SupportedChainId } from '../lib/chains'
-import { getKeystore } from '../lib/localWallet'
-import { scopedGet } from '../lib/scopedStorage'
 import { depositAlertsSuppressed, notify } from '../lib/notifications'
 import { sendEmailNotification } from '../lib/emailNotifications'
+import { useReceiveAddress } from '../hooks/useReceiveAddress'
 
 function seenKey(userId: string, chainId: number, asset: string) {
   return `nova_seen_balance:${userId}:${chainId}:${asset}`
@@ -106,16 +105,8 @@ function ChainWatch({
 }
 
 export function NotificationWatcher() {
-  const { address: connected } = useAccount()
   const { profile } = useAuth()
-  const fallback = useMemo(() => {
-    if (!profile?.id) return null
-    const watch = scopedGet('nova_evm_watch_address', profile.id)
-    if (watch && /^0x[0-9a-fA-F]{40}$/.test(watch)) return watch as `0x${string}`
-    return getKeystore()?.address ?? null
-  }, [profile?.id])
-
-  const address = connected ?? ((profile?.wallet_address ?? null) as `0x${string}` | null) ?? fallback
+  const { address } = useReceiveAddress()
   const userId = profile?.id ?? null
 
   if (!address || !userId) return null

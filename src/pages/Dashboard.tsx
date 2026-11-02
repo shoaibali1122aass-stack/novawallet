@@ -67,12 +67,13 @@ function ReceiveCard({
 
 export default function Dashboard() {
   const { profile } = useAuth()
-  const { address: connectedAddress, isConnected } = useAccount()
-  const { address: savedAddress, source } = useReceiveAddress()
+  const { isConnected } = useAccount()
+  const { address: resolvedAddress, source } = useReceiveAddress()
   const [watchAddress, setWatchAddress] = useState<`0x${string}` | null>(null)
   const handleWatchChange = useCallback((address: `0x${string}` | null) => setWatchAddress(address), [])
-  const displayAddress = connectedAddress ?? watchAddress ?? savedAddress ?? null
-  const displaySource: ReceiveSource = connectedAddress ? 'connected' : watchAddress ? 'watch' : source
+  const hasRealWallet = source === 'connected' || source === 'local' || source === 'linked'
+  const displayAddress = resolvedAddress ?? watchAddress ?? null
+  const displaySource: ReceiveSource = source ?? (watchAddress ? 'watch' : null)
 
   return (
     <div className="space-y-6">
@@ -149,9 +150,9 @@ export default function Dashboard() {
         </Link>
       </div>
 
-      <div className="grid items-start gap-4 lg:grid-cols-2">
+      <div className={`grid items-start gap-4 ${hasRealWallet ? '' : 'lg:grid-cols-2'}`}>
         <LocalWalletCard />
-        <WatchWalletCard onChange={handleWatchChange} connected={isConnected} />
+        {!hasRealWallet && <WatchWalletCard onChange={handleWatchChange} />}
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
@@ -194,7 +195,7 @@ export default function Dashboard() {
               </div>
               <div className="flex items-center justify-between">
                 <dt className="text-slate-500">Wallet</dt>
-                <dd className="font-mono text-slate-300">{shortAddr(profile?.wallet_address) || 'Not linked'}</dd>
+                <dd className="font-mono text-slate-300">{shortAddr(displayAddress) || 'Not linked'}</dd>
               </div>
               <div className="flex items-center justify-between">
                 <dt className="text-slate-500">Withdrawal lock</dt>

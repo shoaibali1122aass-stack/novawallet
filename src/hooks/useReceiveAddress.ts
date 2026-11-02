@@ -11,8 +11,8 @@ export type ReceiveSource = 'connected' | 'watch' | 'local' | 'linked' | null
 
 /**
  * Resolves the best EVM receive address for the signed-in account.
- * Receiving never requires a live wallet connection: a tracked address, a saved
- * (even locked) on-device wallet, or a previously linked wallet all work.
+ * A real saved wallet always wins over a legacy tracked/watch-only address so
+ * deposit, dashboard and withdraw surfaces all show the same address.
  */
 export function useReceiveAddress(): { address: `0x${string}` | null; source: ReceiveSource } {
   const { address: connected } = useAccount()
@@ -25,11 +25,6 @@ export function useReceiveAddress(): { address: `0x${string}` | null; source: Re
 
   if (connected) return { address: connected, source: 'connected' }
 
-  const watch = scopedGet(WATCH_BASE, profile?.id)
-  if (watch && EVM_ADDRESS_RE.test(watch)) {
-    return { address: watch as `0x${string}`, source: 'watch' }
-  }
-
   const keystore = getKeystore()
   if (keystore?.address) return { address: keystore.address, source: 'local' }
   if (localWallet.address) return { address: localWallet.address, source: 'local' }
@@ -37,6 +32,11 @@ export function useReceiveAddress(): { address: `0x${string}` | null; source: Re
   const linked = profile?.wallet_address
   if (linked && EVM_ADDRESS_RE.test(linked)) {
     return { address: linked as `0x${string}`, source: 'linked' }
+  }
+
+  const watch = scopedGet(WATCH_BASE, profile?.id)
+  if (watch && EVM_ADDRESS_RE.test(watch)) {
+    return { address: watch as `0x${string}`, source: 'watch' }
   }
 
   return { address: null, source: null }

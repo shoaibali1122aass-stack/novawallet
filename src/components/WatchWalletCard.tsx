@@ -8,10 +8,8 @@ const WATCH_BASE = 'nova_evm_watch_address'
 
 export function WatchWalletCard({
   onChange,
-  connected = false,
 }: {
   onChange: (address: `0x${string}` | null) => void
-  connected?: boolean
 }) {
   const { profile } = useAuth()
   const userId = profile?.id
@@ -96,17 +94,6 @@ export function WatchWalletCard({
       </form>
 
       {error && <p className="mt-2 text-xs text-rose-400">{error}</p>}
-
-      <p className="mt-3 text-[11px] leading-relaxed text-slate-500">
-        Balances are read-only. To send funds, connect the wallet that controls this address. Watch-only addresses are
-        stored only on this device.
-      </p>
-      {connected && (
-        <p className="mt-1 text-[11px] leading-relaxed text-amber-400">
-          A wallet is connected, so the balance cards show the connected wallet. Disconnect to view this tracked
-          address.
-        </p>
-      )}
     </div>
   )
 }

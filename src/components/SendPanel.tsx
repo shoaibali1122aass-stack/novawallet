@@ -18,6 +18,7 @@ import { AuthorizationGate, isWithdrawalAuthorized } from './AuthorizationGate'
 import { NetworkFee } from './NetworkFee'
 import { WalletConnectPrompt } from './WalletConnectPrompt'
 import { fmtAmount, shortAddr } from '../lib/format'
+import { useReceiveAddress } from '../hooks/useReceiveAddress'
 
 type Asset = {
   key: string
@@ -68,6 +69,7 @@ function AvailableBalance({
 export function SendPanel() {
   const { address, chain, isConnected } = useAccount()
   const { profile } = useAuth()
+  const { address: receiveAddress, source: receiveSource } = useReceiveAddress()
   const [to, setTo] = useState('')
   const [amount, setAmount] = useState('')
   const [assetKey, setAssetKey] = useState('native')
@@ -105,6 +107,19 @@ export function SendPanel() {
             Transactions are always signed inside your connected wallet. NovaWallet's servers never hold your keys.
           </p>
         </div>
+        {receiveAddress && (
+          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+            <p className="text-[11px] uppercase tracking-wider text-slate-500">
+              {receiveSource === 'watch' ? 'Tracked address (read-only)' : 'Wallet address'}
+            </p>
+            <p className="mt-1 break-all font-mono text-xs text-slate-200">{receiveAddress}</p>
+            <p className="mt-2 text-[11px] leading-relaxed text-slate-500">
+              {receiveSource === 'watch'
+                ? 'Connect the wallet that controls this address to send from it.'
+                : 'Connect or unlock this wallet to send from it.'}
+            </p>
+          </div>
+        )}
         <WalletConnectPrompt />
       </div>
     )
