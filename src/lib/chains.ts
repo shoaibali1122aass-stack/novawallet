@@ -10,6 +10,8 @@ export type Token = {
 
 export const SUPPORTED_CHAINS = [mainnet, bsc, polygon, arbitrum, base] as const
 
+export type SupportedChainId = 1 | 56 | 137 | 42161 | 8453
+
 export const RPC_URLS: Record<number, string> = {
   [mainnet.id]: 'https://ethereum-rpc.publicnode.com',
   [bsc.id]: 'https://bsc-rpc.publicnode.com',

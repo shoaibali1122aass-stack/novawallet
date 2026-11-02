@@ -117,7 +117,7 @@ function createProvider(getChainId: () => number, setChainId: (chainId: number) 
 
 export function localWalletConnector() {
   return createConnector((config) => {
-    let chainId = mainnet.id
+    let chainId: number = mainnet.id
     const provider = createProvider(
       () => chainId,
       (next) => {

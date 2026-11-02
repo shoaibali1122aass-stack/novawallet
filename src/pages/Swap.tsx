@@ -9,7 +9,7 @@ import {
   useWriteContract,
 } from 'wagmi'
 import { formatUnits, parseUnits } from 'viem'
-import { CHAIN_META, TOKENS, erc20Abi } from '../lib/chains'
+import { CHAIN_META, TOKENS, erc20Abi, type SupportedChainId } from '../lib/chains'
 import { WalletButton } from '../components/WalletButton'
 import { fmtAmount, shortAddr } from '../lib/format'
 
@@ -221,7 +221,7 @@ export default function Swap() {
           <select
             className="input"
             value={chain.id}
-            onChange={(e) => switchChain({ chainId: Number(e.target.value) })}
+            onChange={(e) => switchChain({ chainId: Number(e.target.value) as SupportedChainId })}
             disabled={switching}
           >
             {chains.map((c) => (

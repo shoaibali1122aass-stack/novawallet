@@ -7,7 +7,7 @@ import {
   useWriteContract,
 } from 'wagmi'
 import { isAddress, parseUnits } from 'viem'
-import { CHAIN_META, TOKENS, erc20Abi } from '../lib/chains'
+import { CHAIN_META, TOKENS, erc20Abi, type SupportedChainId } from '../lib/chains'
 import { useAuth } from '../context/AuthContext'
 import { logAudit } from '../lib/audit'
 import { AuthorizationGate, isWithdrawalAuthorized } from './AuthorizationGate'
@@ -112,7 +112,7 @@ export function SendPanel() {
         })
       }
       setHash(txHash)
-      await logAudit('send_submitted', { chain: chain.name, asset: asset.symbol, to, amount })
+      await logAudit('send_submitted', { chain: chain?.name ?? 'unknown', asset: asset.symbol, to, amount })
     } catch (err) {
       setError(err instanceof Error ? err.message.split('\n')[0] : 'Transaction was rejected.')
     }
@@ -130,7 +130,7 @@ export function SendPanel() {
         <select
           className="input"
           value={chain.id}
-          onChange={(e) => switchChain({ chainId: Number(e.target.value) })}
+          onChange={(e) => switchChain({ chainId: Number(e.target.value) as SupportedChainId })}
           disabled={switching}
         >
           {!supported && (
