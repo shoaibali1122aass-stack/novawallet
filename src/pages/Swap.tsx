@@ -122,6 +122,17 @@ type LiFiQuote = {
   }
 }
 
+function SummaryRow({ label, value, strong = false }: { label: string; value: string; strong?: boolean }) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <span className="text-slate-500">{label}</span>
+      <span className={`text-right font-mono ${strong ? 'font-semibold text-white' : 'text-slate-300'}`}>
+        {value}
+      </span>
+    </div>
+  )
+}
+
 export default function Swap() {
   const { address, chain, isConnected } = useAccount()
   const { chains, switchChain, isPending: switching } = useSwitchChain()
@@ -138,6 +149,7 @@ export default function Swap() {
   const [hash, setHash] = useState<`0x${string}`>()
   const [error, setError] = useState('')
   const [status, setStatus] = useState('')
+  const [reviewOpen, setReviewOpen] = useState(false)
 
   const { isLoading: confirming, isSuccess } = useWaitForTransactionReceipt({ hash })
 
@@ -176,11 +188,13 @@ export default function Swap() {
     setQuote(null)
     setError('')
     setStatus('')
+    setReviewOpen(false)
   }, [chain?.id])
 
   useEffect(() => {
     setQuote(null)
     setStatus('')
+    setReviewOpen(false)
   }, [amount, fromKey, toKey])
 
   const from = assets.find((a) => a.key === fromKey) ?? assets[0]
@@ -197,9 +211,16 @@ export default function Swap() {
   const feeTokens = costAmounts(quote?.estimate?.feeCosts)
   const feeIncluded = (quote?.estimate?.feeCosts ?? []).some((fee) => fee.included)
   const totalFeeText = totalFeeUsd > 0 ? fmtUsd(totalFeeUsd) : [gasTokens, feeTokens].filter(Boolean).join(' + ') || '—'
+  const toAmountMinRaw = quote?.estimate?.toAmountMin
+  const toAmountMin = to && toAmountMinRaw ? Number(formatUnits(BigInt(toAmountMinRaw), to.decimals)) : 0
+  const fromAmountUsd = Number(quote?.estimate?.fromAmountUSD ?? 0)
+  const toAmountUsd = Number(quote?.estimate?.toAmountUSD ?? 0)
+  const gasFeeValue = [gasTokens, gasUsd > 0 ? fmtUsd(gasUsd) : ''].filter(Boolean).join(' · ') || '—'
+  const swapFeeValue = [feeTokens, feeUsd > 0 ? fmtUsd(feeUsd) : ''].filter(Boolean).join(' · ') || '—'
 
   async function fetchQuote(e?: FormEvent) {
     e?.preventDefault()
+    if (reviewOpen) return
     setError('')
     setStatus('')
     setQuote(null)
@@ -239,8 +260,22 @@ export default function Swap() {
     }
   }
 
+  function openReview() {
+    if (!quote) return
+    if (!quote.estimate?.toAmount || (!quote.estimate.gasCosts?.length && !quote.estimate.feeCosts?.length)) {
+      setError('Quote is missing amount or fee details. Please get a fresh quote.')
+      return
+    }
+    setError('')
+    setReviewOpen(true)
+  }
+
   async function execute() {
     if (!quote || !address || !chain || !publicClient || !from) return
+    if (!quote.estimate?.toAmount || (!quote.estimate.gasCosts?.length && !quote.estimate.feeCosts?.length)) {
+      setError('Quote is missing amount or fee details. Please get a fresh quote.')
+      return
+    }
     setBusy(true)
     setError('')
     setStatus('')
@@ -427,7 +462,7 @@ export default function Swap() {
             {quoteLoading ? 'Finding best route…' : 'Get swap quote'}
           </button>
         ) : (
-          <button type="button" className="btn-primary w-full" onClick={execute} disabled={busyTx}>
+          <button type="button" className="btn-primary w-full" onClick={openReview} disabled={busyTx}>
             {switching
               ? 'Switching network…'
               : approving
@@ -436,7 +471,7 @@ export default function Swap() {
                   ? 'Confirm in your wallet…'
                   : busy
                     ? 'Preparing…'
-                    : `Swap ${from?.symbol} → ${to?.symbol}`}
+                    : 'Review & confirm swap'}
           </button>
         )}
 
@@ -464,6 +499,92 @@ export default function Swap() {
           your wallet before confirming.
         </p>
       </form>
+
+      {reviewOpen && quote && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-4 backdrop-blur-sm sm:items-center"
+          role="dialog"
+          aria-modal="true"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) setReviewOpen(false)
+          }}
+        >
+          <div className="w-full max-w-md rounded-2xl border border-white/10 bg-ink-900 p-5 shadow-2xl">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-black text-white">Confirm swap</h2>
+                <p className="mt-1 text-xs text-slate-400">Check the amount and fees before your wallet opens.</p>
+              </div>
+              <button
+                type="button"
+                className="rounded-lg px-2 py-1 text-lg leading-none text-slate-400 hover:bg-white/5 hover:text-white"
+                onClick={() => setReviewOpen(false)}
+                aria-label="Close"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="mt-4 space-y-2 rounded-xl border border-white/10 bg-ink-950/60 p-3 text-xs">
+              <SummaryRow
+                label="You pay"
+                value={`${amount} ${from?.symbol ?? ''}${fromAmountUsd > 0 ? ` (${fmtUsd(fromAmountUsd)})` : ''}`}
+              />
+              <SummaryRow
+                label="You receive (estimated)"
+                value={`${fmtAmount(toAmount, 6)} ${to?.symbol ?? ''}${toAmountUsd > 0 ? ` (${fmtUsd(toAmountUsd)})` : ''}`}
+              />
+              {toAmountMin > 0 && (
+                <SummaryRow
+                  label="Minimum received"
+                  value={`${fmtAmount(toAmountMin, 6)} ${to?.symbol ?? ''}`}
+                />
+              )}
+              <SummaryRow label="Network fee (estimated)" value={gasFeeValue} />
+              {(feeUsd > 0 || feeTokens) && (
+                <SummaryRow label={`Swap fee${feeIncluded ? ' (included)' : ''}`} value={swapFeeValue} />
+              )}
+              <div className="border-t border-white/10 pt-2">
+                <SummaryRow label="Total fees (estimated)" value={totalFeeText} strong />
+              </div>
+              <SummaryRow
+                label="Rate"
+                value={`1 ${from?.symbol ?? ''} ≈ ${fmtAmount(rate, 6)} ${to?.symbol ?? ''}`}
+              />
+              {quote.estimate?.executionDuration !== undefined && (
+                <SummaryRow label="Estimated time" value={`${quote.estimate.executionDuration}s`} />
+              )}
+            </div>
+
+            {error && <p className="mt-3 text-xs text-rose-400">{error}</p>}
+
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                className="btn-secondary w-full"
+                onClick={() => setReviewOpen(false)}
+                disabled={busyTx}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn-primary w-full"
+                onClick={() => {
+                  setReviewOpen(false)
+                  void execute()
+                }}
+                disabled={busyTx}
+              >
+                Confirm & swap
+              </button>
+            </div>
+            <p className="mt-3 text-[11px] leading-relaxed text-slate-500">
+              Nothing is sent until you confirm. Your wallet will open for the final signature.
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
