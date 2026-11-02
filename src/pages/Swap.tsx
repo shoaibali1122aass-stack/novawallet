@@ -2,7 +2,9 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import {
   useAccount,
+  useBalance,
   usePublicClient,
+  useReadContract,
   useSendTransaction,
   useSwitchChain,
   useWaitForTransactionReceipt,
@@ -23,6 +25,44 @@ type Asset = {
   decimals: number
   kind: 'native' | 'token'
   address?: `0x${string}`
+}
+
+function SwapBalance({
+  address,
+  chainId,
+  asset,
+}: {
+  address: `0x${string}`
+  chainId: SupportedChainId
+  asset: Asset
+}) {
+  const native = useBalance({
+    address,
+    chainId,
+    query: { enabled: asset.kind === 'native', refetchInterval: 20_000 },
+  })
+  const token = useReadContract({
+    address: asset.address,
+    abi: erc20Abi,
+    functionName: 'balanceOf',
+    args: [address],
+    chainId,
+    query: { enabled: asset.kind === 'token', refetchInterval: 20_000 },
+  })
+
+  const raw = asset.kind === 'native' ? native.data?.value : (token.data as bigint | undefined)
+  const decimals = asset.kind === 'native' ? (native.data?.decimals ?? asset.decimals) : asset.decimals
+  const value = raw !== undefined ? Number(formatUnits(raw, decimals)) : null
+  const loading = asset.kind === 'native' ? native.isLoading : token.isLoading
+
+  return (
+    <div className="flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2">
+      <span className="text-xs text-slate-400">Available balance</span>
+      <span className="font-mono text-sm font-semibold text-slate-200">
+        {loading ? 'Loading…' : value === null ? '—' : `${fmtAmount(value, 6)} ${asset.symbol}`}
+      </span>
+    </div>
+  )
 }
 
 type LiFiQuote = {
@@ -288,6 +328,8 @@ export default function Swap() {
             }}
           />
         </div>
+
+        {from && <SwapBalance address={address} chainId={chain.id as SupportedChainId} asset={from} />}
 
         {quote && (
           <div className="rounded-xl border border-white/10 bg-ink-900/70 p-3 text-xs">

@@ -11,15 +11,26 @@ import { LocalWalletCard } from '../components/LocalWalletCard'
 import { WatchWalletCard } from '../components/WatchWalletCard'
 import { CopyButton } from '../components/CopyButton'
 import { shortAddr } from '../lib/format'
+import { useReceiveAddress, type ReceiveSource } from '../hooks/useReceiveAddress'
 
 function ReceiveCard({
   address,
-  isConnected,
+  source,
 }: {
   address?: `0x${string}` | null
-  isConnected: boolean
+  source: ReceiveSource
 }) {
-  const watchOnly = Boolean(address) && !isConnected
+  const watchOnly = Boolean(address) && source !== 'connected'
+  const label =
+    source === 'connected'
+      ? 'Connected wallet address.'
+      : source === 'local'
+        ? 'Saved on-device wallet address.'
+        : source === 'watch'
+          ? 'Tracked watch-only address.'
+          : source === 'linked'
+            ? 'Linked wallet address.'
+            : 'Use this address on any EVM network.'
   return (
     <div className="card p-6">
       <div className="flex items-center justify-between">
@@ -32,9 +43,7 @@ function ReceiveCard({
             {address}
           </p>
           <div className="mt-3 flex items-center justify-between">
-            <span className="text-[11px] text-slate-500">
-              {watchOnly ? 'Watch-only address.' : 'Use this address on any EVM network.'}
-            </span>
+            <span className="text-[11px] text-slate-500">{label}</span>
             <CopyButton value={address} label="Copy address" />
           </div>
           <Link to="/deposit" className="mt-3 inline-block text-xs font-semibold text-brand-400 hover:underline">
@@ -48,8 +57,8 @@ function ReceiveCard({
         </>
       ) : (
         <p className="mt-3 text-xs leading-relaxed text-slate-400">
-          Connect a wallet or add a watch-only address above to see your receiving address. For Bitcoin or Solana, use
-          the cards below.
+          No wallet connection is needed to receive. Create or import an on-device wallet, or track an EVM address
+          above, and its deposit address will appear here. For Bitcoin or Solana, use the cards below.
         </p>
       )}
     </div>
@@ -59,9 +68,11 @@ function ReceiveCard({
 export default function Dashboard() {
   const { profile } = useAuth()
   const { address: connectedAddress, isConnected } = useAccount()
+  const { address: savedAddress, source } = useReceiveAddress()
   const [watchAddress, setWatchAddress] = useState<`0x${string}` | null>(null)
   const handleWatchChange = useCallback((address: `0x${string}` | null) => setWatchAddress(address), [])
-  const displayAddress = connectedAddress ?? watchAddress ?? null
+  const displayAddress = connectedAddress ?? watchAddress ?? savedAddress ?? null
+  const displaySource: ReceiveSource = connectedAddress ? 'connected' : watchAddress ? 'watch' : source
 
   return (
     <div className="space-y-6">
@@ -155,7 +166,7 @@ export default function Dashboard() {
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             {SUPPORTED_CHAINS.map((chain) => (
-              <ChainCard key={chain.id} chain={chain} address={watchAddress} />
+              <ChainCard key={chain.id} chain={chain} address={displayAddress} />
             ))}
           </div>
 
@@ -167,7 +178,7 @@ export default function Dashboard() {
         </div>
 
         <div className="space-y-4">
-          <ReceiveCard address={displayAddress} isConnected={isConnected} />
+          <ReceiveCard address={displayAddress} source={displaySource} />
           <SendPanel />
 
           <div className="card p-5">

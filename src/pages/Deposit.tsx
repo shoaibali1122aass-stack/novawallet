@@ -1,18 +1,14 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { useAccount, useBalance, useReadContracts } from 'wagmi'
+import { useBalance, useReadContracts } from 'wagmi'
 import { formatUnits } from 'viem'
-import { useAuth } from '../context/AuthContext'
 import { CHAIN_META, SUPPORTED_CHAINS, TOKENS, erc20Abi, type SupportedChainId } from '../lib/chains'
-import { getKeystore } from '../lib/localWallet'
-import { scopedGet } from '../lib/scopedStorage'
 import { CopyButton } from '../components/CopyButton'
 import { AddressQr } from '../components/AddressQr'
 import { BtcCard } from '../components/BtcCard'
 import { SolCard } from '../components/SolCard'
 import { fmtAmount, shortAddr } from '../lib/format'
-
-const WATCH_BASE = 'nova_evm_watch_address'
+import { useReceiveAddress } from '../hooks/useReceiveAddress'
 
 function DepositBalances({ address, chainId }: { address: `0x${string}`; chainId: SupportedChainId }) {
   const tokens = TOKENS[chainId] ?? []
@@ -62,19 +58,7 @@ function DepositBalances({ address, chainId }: { address: `0x${string}`; chainId
 }
 
 export default function Deposit() {
-  const { address: connected, isConnected } = useAccount()
-  const { profile } = useAuth()
-  const fallback = useMemo(() => {
-    try {
-      const watch = scopedGet(WATCH_BASE, profile?.id)
-      if (watch && /^0x[0-9a-fA-F]{40}$/.test(watch)) return watch as `0x${string}`
-    } catch {
-      /* ignore */
-    }
-    return getKeystore()?.address ?? null
-  }, [profile?.id])
-  const linked = (profile?.wallet_address ?? null) as `0x${string}` | null
-  const address = connected ?? fallback ?? linked ?? null
+  const { address, source } = useReceiveAddress()
 
   const [chainId, setChainId] = useState<number>(SUPPORTED_CHAINS[0].id)
   const chain = SUPPORTED_CHAINS.find((c) => c.id === chainId) ?? SUPPORTED_CHAINS[0]
@@ -97,10 +81,10 @@ export default function Deposit() {
 
       {!address ? (
         <div className="card space-y-3 p-6">
-          <h2 className="text-sm font-bold text-white">No receiving address yet</h2>
+          <h2 className="text-sm font-bold text-white">No saved receiving address yet</h2>
           <p className="text-sm leading-relaxed text-slate-400">
-            Connect an external wallet, unlock or create the on-device NovaWallet, or track an address on the dashboard
-            to get your deposit address.
+            You do not need to connect a wallet to receive funds. Create or import an on-device NovaWallet, or track any
+            EVM address on the dashboard — its deposit address and QR will appear here.
           </p>
           <div className="flex flex-wrap gap-2">
             <Link to="/dashboard#local-wallet" className="btn-primary">
@@ -118,11 +102,19 @@ export default function Deposit() {
               <div>
                 <h2 className="text-sm font-bold text-white">Your EVM deposit address</h2>
                 <p className="mt-1 text-xs text-slate-500">
-                  One address works on every supported EVM network. Always check the network before sending.
+                  One address works on every supported EVM network. No wallet connection is required to receive.
                 </p>
               </div>
               <span className="badge w-fit border-accent-500/30 bg-accent-500/10 text-accent-400">
-                {isConnected ? 'Connected wallet' : 'Watch-only / saved wallet'}
+                {source === 'connected'
+                  ? 'Connected wallet'
+                  : source === 'local'
+                    ? 'Saved local wallet'
+                    : source === 'watch'
+                      ? 'Tracked address'
+                      : source === 'linked'
+                        ? 'Linked wallet'
+                        : 'Receiving address'}
               </span>
             </div>
 
