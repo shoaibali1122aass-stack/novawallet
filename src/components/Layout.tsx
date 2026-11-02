@@ -7,6 +7,8 @@ import { shortAddr } from '../lib/format'
 
 const baseLinks = [
   { to: '/dashboard', label: 'Wallet' },
+  { to: '/deposit', label: 'Deposit' },
+  { to: '/withdraw', label: 'Withdraw' },
   { to: '/security', label: 'Security' },
   { to: '/support', label: 'Support' },
 ]

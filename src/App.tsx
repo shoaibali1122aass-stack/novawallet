@@ -2,6 +2,8 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import Landing from './pages/Landing'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
+import Deposit from './pages/Deposit'
+import Withdraw from './pages/Withdraw'
 import Security from './pages/Security'
 import Support from './pages/Support'
 import Admin from './pages/Admin'
@@ -19,6 +21,8 @@ export default function App() {
       <Route element={<ProtectedRoute />}>
         <Route element={<Layout />}>
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/deposit" element={<Deposit />} />
+          <Route path="/withdraw" element={<Withdraw />} />
           <Route path="/security" element={<Security />} />
           <Route path="/support" element={<Support />} />
           <Route

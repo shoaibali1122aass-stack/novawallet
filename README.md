@@ -13,7 +13,8 @@ A professional, **non-custodial** multi-chain wallet dashboard with an email-OTP
 - Watch-only EVM address tracking for any `0x` address
 - Create or import a local EVM wallet, encrypted on-device; unlock, connect, sign and send
 - Mobile wallet deep links (MetaMask, Trust Wallet, Coinbase Wallet)
-- Send flow signed inside the user's wallet (native + ERC-20) with an in-app network switcher
+- Dedicated **Deposit** page (per-network receive address, token contracts, BTC/SOL watch-only cards)
+- Dedicated **Withdraw** page with the send flow signed inside the user's wallet (native + ERC-20) and an in-app network switcher
 - Optional **withdrawal lock**: wallet signature + fresh email code before sending
 - Wallet ownership verification (sign a message)
 - Support tickets with admin replies
@@ -124,7 +125,7 @@ src/
   components/   Layout, WalletButton, LocalWalletCard, ChainCard, WatchWalletCard, BtcCard, SolCard, SendPanel, guards
   context/      AuthContext (Supabase session + profile)
   lib/          supabase client, wagmi config, local wallet keystore/connector, chain/token map, audit, format
-  pages/        Landing, Login, Dashboard, Security, Support, Admin
+  pages/        Landing, Login, Dashboard, Deposit, Withdraw, Security, Support, Admin
 supabase/
   schema.sql    tables, RLS, admin guards, triggers
   otp_rpc.sql   rate-limited request_login_code() + otp_requests table

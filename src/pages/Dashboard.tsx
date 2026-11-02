@@ -38,6 +38,9 @@ function ReceiveCard({
             </span>
             <CopyButton value={address} label="Copy address" />
           </div>
+          <Link to="/deposit" className="mt-3 inline-block text-xs font-semibold text-brand-400 hover:underline">
+            Open deposit page →
+          </Link>
           {watchOnly && (
             <p className="mt-2 text-[11px] leading-relaxed text-amber-400">
               Deposits are safe to this address. To withdraw, connect the wallet that controls it.
@@ -70,7 +73,15 @@ export default function Dashboard() {
             {profile?.email ? `Signed in as ${profile.email}` : 'Your multi-chain overview'}
           </p>
         </div>
-        <WalletButton />
+        <div className="flex flex-wrap items-center gap-2">
+          <Link to="/deposit" className="btn-primary">
+            Deposit
+          </Link>
+          <Link to="/withdraw" className="btn-secondary">
+            Withdraw
+          </Link>
+          <WalletButton />
+        </div>
       </div>
 
       {!isConnected && (
