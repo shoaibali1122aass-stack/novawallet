@@ -80,6 +80,9 @@ export default function Dashboard() {
           <Link to="/withdraw" className="btn-secondary">
             Withdraw
           </Link>
+          <Link to="/swap" className="btn-secondary">
+            Swap
+          </Link>
           <WalletButton />
         </div>
       </div>

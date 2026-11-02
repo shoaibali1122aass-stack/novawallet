@@ -29,7 +29,7 @@ export function SendPanel() {
   const [assetKey, setAssetKey] = useState('native')
   const [hash, setHash] = useState<`0x${string}` | undefined>()
   const [error, setError] = useState('')
-  const [authorized, setAuthorized] = useState(isWithdrawalAuthorized())
+  const [authorized, setAuthorized] = useState(false)
 
   const { sendTransactionAsync, isPending: sending } = useSendTransaction()
   const { writeContractAsync, isPending: writing } = useWriteContract()
@@ -39,6 +39,10 @@ export function SendPanel() {
   useEffect(() => {
     setAssetKey('native')
   }, [chain?.id])
+
+  useEffect(() => {
+    setAuthorized(isWithdrawalAuthorized(profile?.id))
+  }, [profile?.id])
 
   if (!isConnected || !chain || !address) {
     return (

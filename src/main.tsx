@@ -8,6 +8,8 @@ import { AuthProvider } from './context/AuthContext'
 import { wagmiConfig } from './lib/wagmi'
 import './index.css'
 
+const basename = import.meta.env.BASE_URL.replace(/\/$/, '') || '/'
+
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 15_000, refetchOnWindowFocus: false } },
 })
@@ -17,7 +19,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <WagmiProvider config={wagmiConfig}>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
-          <BrowserRouter>
+          <BrowserRouter basename={basename}>
             <App />
           </BrowserRouter>
         </AuthProvider>

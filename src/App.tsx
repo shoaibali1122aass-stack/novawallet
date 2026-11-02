@@ -4,6 +4,7 @@ import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Deposit from './pages/Deposit'
 import Withdraw from './pages/Withdraw'
+import Swap from './pages/Swap'
 import Security from './pages/Security'
 import Support from './pages/Support'
 import Admin from './pages/Admin'
@@ -23,6 +24,7 @@ export default function App() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/deposit" element={<Deposit />} />
           <Route path="/withdraw" element={<Withdraw />} />
+          <Route path="/swap" element={<Swap />} />
           <Route path="/security" element={<Security />} />
           <Route path="/support" element={<Support />} />
           <Route

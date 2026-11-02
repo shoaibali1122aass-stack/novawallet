@@ -15,6 +15,8 @@ A professional, **non-custodial** multi-chain wallet dashboard with an email-OTP
 - Mobile wallet deep links (MetaMask, Trust Wallet, Coinbase Wallet)
 - Dedicated **Deposit** page (per-network receive address, token contracts, BTC/SOL watch-only cards)
 - Dedicated **Withdraw** page with the send flow signed inside the user's wallet (native + ERC-20) and an in-app network switcher
+- **Swap** page using the LI.FI aggregator, signed in the user's wallet (with token approval handling)
+- Wallet, watch addresses and withdrawal authorization are stored **per signed-in account** on the device
 - Optional **withdrawal lock**: wallet signature + fresh email code before sending
 - Wallet ownership verification (sign a message)
 - Support tickets with admin replies

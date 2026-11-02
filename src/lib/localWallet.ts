@@ -4,6 +4,12 @@ import type { LocalAccount } from 'viem/accounts'
 const STORAGE_KEY = 'nova_local_keystore'
 const PBKDF2_ITERATIONS = 210_000
 
+let scope: string | null = null
+
+function scopedKey() {
+  return scope ? `${STORAGE_KEY}:${scope}` : STORAGE_KEY
+}
+
 export type KeystoreKind = 'mnemonic' | 'privateKey'
 
 export type Keystore = {
@@ -50,9 +56,28 @@ export const localWalletStore = {
   },
 }
 
+export function setWalletScope(nextScope: string | null) {
+  if (scope === nextScope) return
+  scope = nextScope
+  account = null
+  publish()
+}
+
+export function getWalletScope() {
+  return scope
+}
+
 export function getKeystore(): Keystore | null {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
+    let raw = localStorage.getItem(scopedKey())
+    if (!raw && scope) {
+      const legacy = localStorage.getItem(STORAGE_KEY)
+      if (legacy) {
+        localStorage.setItem(scopedKey(), legacy)
+        localStorage.removeItem(STORAGE_KEY)
+        raw = legacy
+      }
+    }
     if (!raw) return null
     const parsed = JSON.parse(raw) as Keystore
     if (
@@ -72,11 +97,12 @@ export function getKeystore(): Keystore | null {
 }
 
 export function saveKeystore(keystore: Keystore) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(keystore))
+  localStorage.setItem(scopedKey(), JSON.stringify(keystore))
 }
 
 export function removeKeystore() {
-  localStorage.removeItem(STORAGE_KEY)
+  localStorage.removeItem(scopedKey())
+  if (scope) localStorage.removeItem(STORAGE_KEY)
 }
 
 export function createMnemonic(): string {

@@ -1,6 +1,8 @@
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
 import type { Session } from '@supabase/supabase-js'
+import { useAccount, useDisconnect } from 'wagmi'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
+import { setWalletScope } from '../lib/localWallet'
 
 export type Profile = {
   id: string
@@ -32,15 +34,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
+  const { connector } = useAccount()
+  const { disconnect } = useDisconnect()
+  const activeUserId = useRef<string | null>(null)
 
-  const loadProfile = useCallback(async (s: Session | null) => {
-    if (!s) {
-      setProfile(null)
-      return
-    }
-    const { data } = await supabase.from('profiles').select('*').eq('id', s.user.id).maybeSingle()
-    setProfile((data as Profile) ?? null)
-  }, [])
+  const loadProfile = useCallback(
+    async (s: Session | null) => {
+      if (!s) {
+        if (activeUserId.current && connector?.id === 'novaLocal') disconnect()
+        activeUserId.current = null
+        setWalletScope(null)
+        setProfile(null)
+        return
+      }
+      const nextId = s.user.id
+      const prevId = activeUserId.current
+      if (prevId && prevId !== nextId && connector?.id === 'novaLocal') disconnect()
+      activeUserId.current = nextId
+      setWalletScope(nextId)
+      const { data } = await supabase.from('profiles').select('*').eq('id', nextId).maybeSingle()
+      setProfile((data as Profile) ?? null)
+    },
+    [connector?.id, disconnect],
+  )
 
   const refresh = useCallback(async () => {
     const { data } = await supabase.auth.getSession()
@@ -75,7 +91,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await supabase.auth.signOut()
     setSession(null)
     setProfile(null)
-  }, [])
+    activeUserId.current = null
+    setWalletScope(null)
+    if (connector?.id === 'novaLocal') disconnect()
+  }, [connector?.id, disconnect])
 
   return <Ctx.Provider value={{ session, profile, loading, refresh, signOut }}>{children}</Ctx.Provider>
 }

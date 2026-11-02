@@ -6,9 +6,13 @@ import { logAudit } from '../lib/audit'
 
 const AUTH_KEY = 'nova_withdraw_auth_until'
 
-export function isWithdrawalAuthorized(): boolean {
+function authKey(userId?: string | null) {
+  return userId ? `${AUTH_KEY}:${userId}` : AUTH_KEY
+}
+
+export function isWithdrawalAuthorized(userId?: string | null): boolean {
   try {
-    return Number(sessionStorage.getItem(AUTH_KEY) || 0) > Date.now()
+    return Number(sessionStorage.getItem(authKey(userId)) || 0) > Date.now()
   } catch {
     return false
   }
@@ -67,7 +71,7 @@ export function AuthorizationGate({ onAuthorized }: { onAuthorized: () => void }
           type,
         })
         if (!verifyError && data.session) {
-          sessionStorage.setItem(AUTH_KEY, String(Date.now() + 10 * 60 * 1000))
+          sessionStorage.setItem(authKey(profile?.id), String(Date.now() + 10 * 60 * 1000))
           await logAudit('withdrawal_authorized', { wallet: address })
           onAuthorized()
           return

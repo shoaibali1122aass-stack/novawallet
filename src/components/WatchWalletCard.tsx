@@ -1,8 +1,11 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { isAddress } from 'viem'
+import { useAuth } from '../context/AuthContext'
 import { CopyButton } from './CopyButton'
 
-const KEY = 'nova_evm_watch_address'
+function watchKey(userId?: string | null) {
+  return userId ? `nova_evm_watch_address:${userId}` : 'nova_evm_watch_address'
+}
 
 export function WatchWalletCard({
   onChange,
@@ -11,19 +14,25 @@ export function WatchWalletCard({
   onChange: (address: `0x${string}` | null) => void
   connected?: boolean
 }) {
+  const { profile } = useAuth()
+  const key = watchKey(profile?.id)
   const [input, setInput] = useState('')
   const [saved, setSaved] = useState<`0x${string}` | null>(null)
   const [error, setError] = useState('')
 
   useEffect(() => {
-    const stored = localStorage.getItem(KEY)
+    setSaved(null)
+    setInput('')
+    setError('')
+    onChange(null)
+    const stored = localStorage.getItem(key)
     if (stored && isAddress(stored)) {
       const address = stored as `0x${string}`
       setSaved(address)
       setInput(address)
       onChange(address)
     }
-  }, [onChange])
+  }, [key, onChange])
 
   function save(e: FormEvent) {
     e.preventDefault()
@@ -34,14 +43,14 @@ export function WatchWalletCard({
       return
     }
     const address = clean as `0x${string}`
-    localStorage.setItem(KEY, address)
+    localStorage.setItem(key, address)
     setSaved(address)
     setInput(address)
     onChange(address)
   }
 
   function remove() {
-    localStorage.removeItem(KEY)
+    localStorage.removeItem(key)
     setSaved(null)
     setInput('')
     setError('')

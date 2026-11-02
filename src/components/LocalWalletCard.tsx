@@ -1,4 +1,4 @@
-import { useState, useSyncExternalStore, type FormEvent } from 'react'
+import { useEffect, useState, useSyncExternalStore, type FormEvent } from 'react'
 import { useAccount, useConnect, useDisconnect } from 'wagmi'
 import {
   accountFromMnemonic,
@@ -14,12 +14,14 @@ import {
   type KeystoreKind,
 } from '../lib/localWallet'
 import { shortAddr } from '../lib/format'
+import { useAuth } from '../context/AuthContext'
 import { CopyButton } from './CopyButton'
 
 type Mode = 'idle' | 'create' | 'import' | 'unlock'
 type Step = 'phrase' | 'password' | 'secret'
 
 export function LocalWalletCard() {
+  const { profile } = useAuth()
   const [mode, setMode] = useState<Mode>('idle')
   const [step, setStep] = useState<Step>('phrase')
   const [keystore, setKeystore] = useState<Keystore | null>(() =>
@@ -50,6 +52,20 @@ export function LocalWalletCard() {
   const localConnector = connectors.find((connector) => connector.id === 'novaLocal')
   const localConnected = isConnected && activeConnector?.id === 'novaLocal'
   const working = busy || connecting
+
+  useEffect(() => {
+    setKeystore(getKeystore())
+    setMode('idle')
+    setStep('phrase')
+    setPassword('')
+    setConfirm('')
+    setMnemonic('')
+    setBackedUp(false)
+    setSecretInput('')
+    setImportSecret(null)
+    setError('')
+    setOk('')
+  }, [profile?.id])
 
   function clearForm() {
     setStep('phrase')
