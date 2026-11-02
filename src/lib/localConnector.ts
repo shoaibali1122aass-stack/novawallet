@@ -131,11 +131,21 @@ export function localWalletConnector() {
       name: 'NovaWallet Local',
       type: 'novaLocal',
 
-      async connect(parameters: { chainId?: number } = {}) {
+      async connect<withCapabilities extends boolean = false>(
+        parameters: { chainId?: number; withCapabilities?: withCapabilities | boolean } = {},
+      ) {
         const account = localWalletStore.getAccount()
         if (!account) throw new Error('Create, import or unlock your NovaWallet first.')
         if (parameters.chainId) chainId = parameters.chainId
-        return { accounts: [account.address] as const, chainId }
+        const addresses = [account.address] as const
+        const accounts = (
+          parameters.withCapabilities
+            ? addresses.map((address) => ({ address, capabilities: {} }))
+            : addresses
+        ) as withCapabilities extends true
+          ? readonly { address: `0x${string}`; capabilities: Record<string, unknown> }[]
+          : readonly `0x${string}`[]
+        return { accounts, chainId }
       },
 
       async disconnect() {
