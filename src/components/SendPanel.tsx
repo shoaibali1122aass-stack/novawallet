@@ -14,6 +14,7 @@ import { useAuth } from '../context/AuthContext'
 import { logAudit } from '../lib/audit'
 import { notify } from '../lib/notifications'
 import { AuthorizationGate, isWithdrawalAuthorized } from './AuthorizationGate'
+import { WalletConnectPrompt } from './WalletConnectPrompt'
 import { fmtAmount, shortAddr } from '../lib/format'
 
 type Asset = {
@@ -92,11 +93,14 @@ export function SendPanel() {
 
   if (!isConnected || !chain || !address) {
     return (
-      <div className="card p-6 text-center">
-        <p className="text-sm font-semibold text-white">Connect a wallet to send</p>
-        <p className="mt-1 text-xs text-slate-400">
-          Transactions are always signed inside your connected wallet. NovaWallet's servers never hold your keys.
-        </p>
+      <div className="card space-y-3 p-6">
+        <div>
+          <p className="text-sm font-semibold text-white">Connect a wallet to send</p>
+          <p className="mt-1 text-xs text-slate-400">
+            Transactions are always signed inside your connected wallet. NovaWallet's servers never hold your keys.
+          </p>
+        </div>
+        <WalletConnectPrompt />
       </div>
     )
   }

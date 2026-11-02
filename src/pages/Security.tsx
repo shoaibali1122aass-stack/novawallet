@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabase'
 import { logAudit } from '../lib/audit'
 import { shortAddr } from '../lib/format'
-import { WalletButton } from '../components/WalletButton'
+import { WalletConnectPrompt } from '../components/WalletConnectPrompt'
 
 type EventRow = { id: number; action: string; created_at: string }
 
@@ -142,13 +142,39 @@ export default function Security() {
           <p className="mt-3 break-all rounded-xl border border-white/10 bg-ink-900/70 p-3 font-mono text-xs text-slate-300">
             {profile?.wallet_address ?? 'No wallet linked yet'}
           </p>
-          <div className="mt-4 flex flex-wrap items-center gap-2">
-            {!isConnected ? <WalletButton compact /> : null}
-            <button className="btn-secondary" onClick={linkWallet} disabled={busy || !isConnected}>
-              {busy ? 'Waiting…' : 'Verify wallet ownership'}
-            </button>
-          </div>
-          {!isConnected && <p className="mt-2 text-xs text-slate-500">Connect a wallet to verify it.</p>}
+          {profile?.wallet_address ? (
+            <div className="mt-4 space-y-3">
+              <p className="text-xs leading-relaxed text-slate-500">
+                This wallet is already linked to your account. You do not need to connect it again unless you want to
+                replace it.
+              </p>
+              {isConnected && address && address.toLowerCase() !== profile.wallet_address.toLowerCase() && (
+                <button className="btn-secondary" onClick={linkWallet} disabled={busy}>
+                  {busy ? 'Waiting…' : 'Replace with connected wallet'}
+                </button>
+              )}
+              {!isConnected && (
+                <details>
+                  <summary className="cursor-pointer text-xs font-semibold text-brand-400 hover:underline">
+                    Change or re-verify linked wallet
+                  </summary>
+                  <div className="mt-3">
+                    <WalletConnectPrompt />
+                  </div>
+                </details>
+              )}
+            </div>
+          ) : (
+            <div className="mt-4 space-y-3">
+              {isConnected ? (
+                <button className="btn-secondary" onClick={linkWallet} disabled={busy}>
+                  {busy ? 'Waiting…' : 'Verify wallet ownership'}
+                </button>
+              ) : (
+                <WalletConnectPrompt description="Connect your saved NovaWallet or an external wallet to verify ownership." />
+              )}
+            </div>
+          )}
         </div>
       </div>
 

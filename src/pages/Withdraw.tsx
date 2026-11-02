@@ -1,14 +1,11 @@
 import { Link } from 'react-router-dom'
-import { useAccount } from 'wagmi'
 import { useAuth } from '../context/AuthContext'
 import { SendPanel } from '../components/SendPanel'
-import { WalletButton } from '../components/WalletButton'
 import { BtcCard } from '../components/BtcCard'
 import { SolCard } from '../components/SolCard'
 
 export default function Withdraw() {
   const { profile } = useAuth()
-  const { isConnected } = useAccount()
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
@@ -60,19 +57,6 @@ export default function Withdraw() {
               Manage withdrawal lock
             </Link>
           </div>
-
-          {!isConnected && (
-            <div className="card space-y-3 p-5">
-              <h2 className="text-sm font-bold text-white">Connect a wallet to withdraw</h2>
-              <p className="text-xs leading-relaxed text-slate-400">
-                Use MetaMask, Trust Wallet, Coinbase Wallet or the optional on-device NovaWallet.
-              </p>
-              <WalletButton compact />
-              <Link to="/dashboard#local-wallet" className="text-xs font-semibold text-brand-400 hover:underline">
-                Create or unlock the NovaWallet local wallet →
-              </Link>
-            </div>
-          )}
 
           <div className="card p-5">
             <h2 className="text-sm font-bold text-white">Bitcoin &amp; Solana</h2>

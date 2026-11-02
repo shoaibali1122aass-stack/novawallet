@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useSyncExternalStore } from 'react'
 import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
 import { useAccount, useConnect, useDisconnect } from 'wagmi'
 import { shortAddr } from '../lib/format'
 import { CHAIN_META } from '../lib/chains'
+import { localWalletStore } from '../lib/localWallet'
 
 function isMobileBrowser() {
   if (typeof navigator === 'undefined') return false
@@ -22,6 +23,11 @@ export function WalletButton({ compact = false }: { compact?: boolean }) {
   const { address, isConnected, chain } = useAccount()
   const { connectors, connect, isPending, error } = useConnect()
   const { disconnect } = useDisconnect()
+  const wallet = useSyncExternalStore(
+    localWalletStore.subscribe,
+    localWalletStore.getSnapshot,
+    localWalletStore.getSnapshot,
+  )
   const [open, setOpen] = useState(false)
 
   useEffect(() => {
@@ -50,12 +56,14 @@ export function WalletButton({ compact = false }: { compact?: boolean }) {
   const hasInjectedProvider =
     typeof window !== 'undefined' && Boolean((window as unknown as { ethereum?: unknown }).ethereum)
   const walletConnect = connectors.find((c) => c.id === 'walletConnect')
+  const localWallet = connectors.find((c) => c.id === 'novaLocal')
   const discovered = connectors.filter(
     (c) => c.id !== 'injected' && c.id !== 'walletConnect' && c.id !== 'novaLocal',
   )
   const genericInjected = connectors.find((c) => c.id === 'injected')
   const list = [
     ...discovered,
+    ...(localWallet && wallet.address ? [localWallet] : []),
     ...(hasInjectedProvider && genericInjected ? [genericInjected] : []),
     ...(walletConnect ? [walletConnect] : []),
   ]
@@ -129,10 +137,14 @@ export function WalletButton({ compact = false }: { compact?: boolean }) {
                       <span className="grid h-6 w-6 place-items-center rounded-md bg-white/10 text-[10px] font-black">
                         {connector.name.slice(0, 2).toUpperCase()}
                       </span>
-                      {connector.id === 'injected' ? 'Browser wallet' : connector.name}
+                      {connector.id === 'injected'
+                        ? 'Browser wallet'
+                        : connector.id === 'novaLocal'
+                          ? 'NovaWallet (on-device)'
+                          : connector.name}
                     </span>
                     <span className="text-[11px] font-normal text-slate-500">
-                      {connector.id === 'walletConnect' ? 'QR / mobile' : 'Browser'}
+                      {connector.id === 'walletConnect' ? 'QR / mobile' : connector.id === 'novaLocal' ? 'Local' : 'Browser'}
                     </span>
                   </button>
                 ))}
