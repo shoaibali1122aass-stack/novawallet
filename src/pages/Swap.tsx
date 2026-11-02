@@ -12,6 +12,7 @@ import { formatUnits, parseUnits } from 'viem'
 import { CHAIN_META, TOKENS, erc20Abi, type SupportedChainId } from '../lib/chains'
 import { WalletButton } from '../components/WalletButton'
 import { notify, suppressDepositAlerts } from '../lib/notifications'
+import { sendEmailNotification } from '../lib/emailNotifications'
 import { fmtAmount, shortAddr } from '../lib/format'
 
 const ZERO = '0x0000000000000000000000000000000000000000' as const
@@ -66,7 +67,10 @@ export default function Swap() {
 
   useEffect(() => {
     if (!hash || !isSuccess) return
-    notify('swap', 'Swap confirmed', `Transaction ${shortAddr(hash, 8)} is confirmed on-chain.`)
+    const title = 'Swap confirmed'
+    const body = `Transaction ${shortAddr(hash, 8)} is confirmed on-chain.`
+    notify('swap', title, body)
+    void sendEmailNotification('swap', title, body, `confirmed:${hash}`)
   }, [hash, isSuccess])
 
   const meta = chain ? CHAIN_META[chain.id] : undefined
@@ -187,7 +191,10 @@ export default function Swap() {
       })
       setHash(txHash)
       suppressDepositAlerts()
-      notify('swap', 'Swap submitted', `${amount} ${from.symbol} → ${to?.symbol ?? 'token'} submitted. Waiting for confirmation.`)
+      const title = 'Swap submitted'
+      const body = `${amount} ${from.symbol} → ${to?.symbol ?? 'token'} submitted. Waiting for confirmation.`
+      notify('swap', title, body)
+      void sendEmailNotification('swap', title, body, `submitted:${txHash}`)
       setStatus('Swap submitted. Waiting for confirmation…')
     } catch (err) {
       setError(err instanceof Error ? err.message.split('\n')[0] : 'The swap was rejected.')

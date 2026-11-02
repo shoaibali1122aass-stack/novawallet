@@ -18,7 +18,7 @@ A professional, **non-custodial** multi-chain wallet dashboard with an email-OTP
 - **Swap** page using the LI.FI aggregator, signed in the user's wallet (with token approval handling)
 - Wallet, watch addresses (EVM/BTC/SOL) and withdrawal authorization are stored **per signed-in account** on the device
 - Deep links (`/dashboard`, `/deposit`, `/withdraw`, `/swap`, …) are served as pre-rendered route shells on GitHub Pages
-- In-app notification bell + toasts for detected deposits and submitted/confirmed withdrawals and swaps
+- In-app notification bell + toasts for detected deposits and submitted/confirmed withdrawals and swaps, mirrored to the account email
 - Dashboard quick actions for Deposit, Withdraw and Swap
 - Optional **withdrawal lock**: wallet signature + fresh email code before sending
 - Wallet ownership verification (sign a message)
@@ -38,7 +38,7 @@ Vite · React · TypeScript · Tailwind CSS · wagmi/viem · Supabase (Auth + Po
 ## 1. Supabase setup
 
 1. Create a project at <https://supabase.com>.
-2. Open **SQL Editor** and run [`supabase/schema.sql`](supabase/schema.sql), then [`supabase/otp_rpc.sql`](supabase/otp_rpc.sql).
+2. Open **SQL Editor** and run [`supabase/schema.sql`](supabase/schema.sql), then [`supabase/otp_rpc.sql`](supabase/otp_rpc.sql), then [`supabase/notify_rpc.sql`](supabase/notify_rpc.sql).
 3. **Authentication → Providers → Email**: keep Email enabled.
 4. **Email OTP delivery** (the app does not rely on Supabase email templates):
    - Store the service-role key and a GitHub token in Vault:
@@ -48,6 +48,7 @@ Vite · React · TypeScript · Tailwind CSS · wagmi/viem · Supabase (Auth + Po
      ```
    - Add repository secrets `MAIL_USER` and `MAIL_PASS` (Gmail app password) in GitHub → Settings → Secrets and variables → Actions.
    - The workflow [`.github/workflows/send-otp.yml`](.github/workflows/send-otp.yml) emails the 8-digit code on the `send-otp` repository-dispatch event.
+   - The workflow [`.github/workflows/send-notification.yml`](.github/workflows/send-notification.yml) emails deposit, withdrawal and swap alerts on the `send-notification` event. It reuses the same `MAIL_USER` / `MAIL_PASS` secrets and the `nova_github_token` Vault secret, so no extra setup is required once `notify_rpc.sql` has been run.
 5. **Authentication → URL Configuration**: add your deployed URL (e.g. `https://your-app.vercel.app`) to **Site URL** and **Redirect URLs**.
 6. Copy **Project URL** and **anon public key** from **Settings → API**.
 7. Make yourself admin (replace the email):
@@ -134,6 +135,7 @@ src/
 supabase/
   schema.sql    tables, RLS, admin guards, triggers
   otp_rpc.sql   rate-limited request_login_code() + otp_requests table
+  notify_rpc.sql rate-limited request_wallet_notification() + email dispatch
 .github/
   workflows/send-otp.yml   Gmail SMTP delivery of the 8-digit code
 ```

@@ -7,6 +7,7 @@ import { CHAIN_META, SUPPORTED_CHAINS, TOKENS, erc20Abi, type SupportedChainId }
 import { getKeystore } from '../lib/localWallet'
 import { scopedGet } from '../lib/scopedStorage'
 import { CopyButton } from '../components/CopyButton'
+import { AddressQr } from '../components/AddressQr'
 import { BtcCard } from '../components/BtcCard'
 import { SolCard } from '../components/SolCard'
 import { fmtAmount, shortAddr } from '../lib/format'
@@ -125,12 +126,23 @@ export default function Deposit() {
               </span>
             </div>
 
-            <p className="mt-4 break-all rounded-xl border border-white/10 bg-ink-900/70 p-3 font-mono text-xs text-slate-200">
-              {address}
-            </p>
-            <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-              <span className="font-mono text-[11px] text-slate-500">{shortAddr(address, 8)}</span>
-              <CopyButton value={address} label="Copy address" />
+            <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-start">
+              <div className="mx-auto flex flex-col items-center gap-2 sm:mx-0">
+                <AddressQr value={address} />
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Scan to receive</span>
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="break-all rounded-xl border border-white/10 bg-ink-900/70 p-3 font-mono text-xs text-slate-200">
+                  {address}
+                </p>
+                <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                  <span className="font-mono text-[11px] text-slate-500">{shortAddr(address, 8)}</span>
+                  <CopyButton value={address} label="Copy address" />
+                </div>
+                <p className="mt-2 text-[11px] leading-relaxed text-slate-500">
+                  Scan this QR with any wallet app to receive {meta.coin} and supported tokens on {meta.label}.
+                </p>
+              </div>
             </div>
 
             <div className="mt-5">
@@ -170,7 +182,7 @@ export default function Deposit() {
             <div className="mt-3 flex items-start gap-2 rounded-xl border border-accent-500/20 bg-accent-500/5 p-3 text-[11px] leading-relaxed text-accent-300">
               <span className="mt-0.5 font-bold">🔔</span>
               <span>
-                We watch this address while you are signed in and notify you here as soon as a new deposit is detected.
+                We watch this address while you are signed in and notify you in the app and by email as soon as a new deposit is detected.
               </span>
             </div>
           </div>

@@ -65,7 +65,7 @@ export default function Withdraw() {
               send to the recipient from there.
             </p>
             <p className="mt-2 text-[11px] leading-relaxed text-accent-400">
-              🔔 Withdrawal submitted and confirmed updates appear in the notification bell.
+              🔔 Withdrawal submitted and confirmed updates appear in the notification bell and are also sent to your email.
             </p>
           </div>
         </div>

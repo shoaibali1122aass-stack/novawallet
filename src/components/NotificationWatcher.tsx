@@ -6,6 +6,7 @@ import { CHAIN_META, SUPPORTED_CHAINS, TOKENS, erc20Abi, type SupportedChainId }
 import { getKeystore } from '../lib/localWallet'
 import { scopedGet } from '../lib/scopedStorage'
 import { depositAlertsSuppressed, notify } from '../lib/notifications'
+import { sendEmailNotification } from '../lib/emailNotifications'
 
 function seenKey(userId: string, chainId: number, asset: string) {
   return `nova_seen_balance:${userId}:${chainId}:${asset}`
@@ -28,11 +29,10 @@ function useDepositWatcher(
       const previous = BigInt(stored)
       if (value > previous && !depositAlertsSuppressed()) {
         const diff = value - previous
-        notify(
-          'deposit',
-          `New ${symbol} deposit`,
-          `${formatUnits(diff, decimals)} ${symbol} received on ${chainLabel}.`,
-        )
+        const title = `New ${symbol} deposit`
+        const body = `${formatUnits(diff, decimals)} ${symbol} received on ${chainLabel}.`
+        notify('deposit', title, body)
+        void sendEmailNotification('deposit', title, body, `${storageKey}:${value}`)
       }
     } catch {
       /* storage unavailable */
@@ -91,11 +91,10 @@ function ChainWatch({
         if (stored === null) return
         const previous = BigInt(stored)
         if (value > previous && !depositAlertsSuppressed()) {
-          notify(
-            'deposit',
-            `New ${token.symbol} deposit`,
-            `${formatUnits(value - previous, token.decimals)} ${token.symbol} received on ${label}.`,
-          )
+          const title = `New ${token.symbol} deposit`
+          const body = `${formatUnits(value - previous, token.decimals)} ${token.symbol} received on ${label}.`
+          notify('deposit', title, body)
+          void sendEmailNotification('deposit', title, body, `${storageKey}:${value}`)
         }
       } catch {
         /* storage unavailable */

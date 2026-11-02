@@ -13,7 +13,9 @@ import { CHAIN_META, TOKENS, erc20Abi, type SupportedChainId } from '../lib/chai
 import { useAuth } from '../context/AuthContext'
 import { logAudit } from '../lib/audit'
 import { notify } from '../lib/notifications'
+import { sendEmailNotification } from '../lib/emailNotifications'
 import { AuthorizationGate, isWithdrawalAuthorized } from './AuthorizationGate'
+import { NetworkFee } from './NetworkFee'
 import { WalletConnectPrompt } from './WalletConnectPrompt'
 import { fmtAmount, shortAddr } from '../lib/format'
 
@@ -88,7 +90,10 @@ export function SendPanel() {
 
   useEffect(() => {
     if (!hash || !isSuccess) return
-    notify('withdrawal', 'Withdrawal confirmed', `Transaction ${shortAddr(hash, 8)} is confirmed on-chain.`)
+    const title = 'Withdrawal confirmed'
+    const body = `Transaction ${shortAddr(hash, 8)} is confirmed on-chain.`
+    notify('withdrawal', title, body)
+    void sendEmailNotification('withdrawal', title, body, `confirmed:${hash}`)
   }, [hash, isSuccess])
 
   if (!isConnected || !chain || !address) {
@@ -162,11 +167,10 @@ export function SendPanel() {
         })
       }
       setHash(txHash)
-      notify(
-        'withdrawal',
-        'Withdrawal submitted',
-        `${amount} ${asset.symbol} sent on ${chain?.name ?? 'the network'}. Waiting for confirmation.`,
-      )
+      const title = 'Withdrawal submitted'
+      const body = `${amount} ${asset.symbol} sent on ${chain?.name ?? 'the network'}. Waiting for confirmation.`
+      notify('withdrawal', title, body)
+      void sendEmailNotification('withdrawal', title, body, `submitted:${txHash}`)
       await logAudit('send_submitted', { chain: chain?.name ?? 'unknown', asset: asset.symbol, to, amount })
     } catch (err) {
       setError(err instanceof Error ? err.message.split('\n')[0] : 'Transaction was rejected.')
@@ -239,6 +243,16 @@ export function SendPanel() {
           onChange={(e) => setAmount(e.target.value)}
         />
       </div>
+
+      <NetworkFee
+        address={address}
+        chainId={chain.id as SupportedChainId}
+        nativeSymbol={chain.nativeCurrency.symbol}
+        nativeDecimals={chain.nativeCurrency.decimals}
+        asset={asset}
+        to={to}
+        amount={amount}
+      />
 
       <AvailableBalance address={address} chainId={chain.id} asset={asset} />
 
