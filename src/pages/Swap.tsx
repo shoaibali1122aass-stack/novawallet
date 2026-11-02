@@ -94,6 +94,7 @@ type LiFiCost = {
   amountUSD?: string
   included?: boolean
   name?: string
+  percentage?: string
   token?: { symbol?: string; decimals?: number }
 }
 
@@ -210,13 +211,16 @@ export default function Swap() {
   const gasTokens = costAmounts(quote?.estimate?.gasCosts)
   const feeTokens = costAmounts(quote?.estimate?.feeCosts)
   const feeIncluded = (quote?.estimate?.feeCosts ?? []).some((fee) => fee.included)
-  const totalFeeText = totalFeeUsd > 0 ? fmtUsd(totalFeeUsd) : [gasTokens, feeTokens].filter(Boolean).join(' + ') || '—'
   const toAmountMinRaw = quote?.estimate?.toAmountMin
   const toAmountMin = to && toAmountMinRaw ? Number(formatUnits(BigInt(toAmountMinRaw), to.decimals)) : 0
   const fromAmountUsd = Number(quote?.estimate?.fromAmountUSD ?? 0)
   const toAmountUsd = Number(quote?.estimate?.toAmountUSD ?? 0)
   const gasFeeValue = [gasTokens, gasUsd > 0 ? fmtUsd(gasUsd) : ''].filter(Boolean).join(' · ') || '—'
   const swapFeeValue = [feeTokens, feeUsd > 0 ? fmtUsd(feeUsd) : ''].filter(Boolean).join(' · ') || '—'
+  const totalFeeTokens = costAmounts([...(quote?.estimate?.gasCosts ?? []), ...(quote?.estimate?.feeCosts ?? [])])
+  const totalFeeValue = [totalFeeTokens, totalFeeUsd > 0 ? fmtUsd(totalFeeUsd) : ''].filter(Boolean).join(' · ') || '—'
+  const feePercent = (quote?.estimate?.feeCosts ?? []).reduce((sum, fee) => sum + (Number(fee.percentage) || 0), 0)
+  const feePercentLabel = feePercent > 0 ? ` (${fmtAmount(feePercent * 100, 3)}%)` : ''
 
   async function fetchQuote(e?: FormEvent) {
     e?.preventDefault()
@@ -433,7 +437,7 @@ export default function Swap() {
             </div>
             {(feeUsd > 0 || feeTokens) && (
               <div className="mt-1 flex items-center justify-between">
-                <span className="text-slate-500">Swap fee{feeIncluded ? ' (included)' : ''}</span>
+                <span className="text-slate-500">Swap fee{feePercentLabel}{feeIncluded ? ' (included)' : ''}</span>
                 <span className="font-mono text-slate-300">
                   {feeTokens}
                   {feeTokens && feeUsd > 0 ? ' · ' : ''}
@@ -443,7 +447,7 @@ export default function Swap() {
             )}
             <div className="mt-1 flex items-center justify-between border-t border-white/5 pt-1.5">
               <span className="text-slate-400">Total fees (estimated)</span>
-              <span className="font-mono font-semibold text-white">{totalFeeText}</span>
+              <span className="font-mono font-semibold text-white">{totalFeeValue}</span>
             </div>
             {quote.estimate?.executionDuration !== undefined && (
               <div className="mt-1 flex items-center justify-between">
@@ -495,8 +499,8 @@ export default function Swap() {
         )}
 
         <p className="text-[11px] leading-relaxed text-slate-500">
-          Quotes come from the LI.FI aggregator. A small network fee and slippage may apply. Always check the amount in
-          your wallet before confirming.
+          Quotes come from the LI.FI aggregator. The swap fee is LI.FI's provider fee and is taken from the amount you
+          swap; the network fee is paid in gas. Always check the amount in your wallet before confirming.
         </p>
       </form>
 
@@ -542,10 +546,10 @@ export default function Swap() {
               )}
               <SummaryRow label="Network fee (estimated)" value={gasFeeValue} />
               {(feeUsd > 0 || feeTokens) && (
-                <SummaryRow label={`Swap fee${feeIncluded ? ' (included)' : ''}`} value={swapFeeValue} />
+                <SummaryRow label={`Swap fee${feePercentLabel}${feeIncluded ? ' (included)' : ''}`} value={swapFeeValue} />
               )}
               <div className="border-t border-white/10 pt-2">
-                <SummaryRow label="Total fees (estimated)" value={totalFeeText} strong />
+                <SummaryRow label="Total fees (estimated)" value={totalFeeValue} strong />
               </div>
               <SummaryRow
                 label="Rate"
