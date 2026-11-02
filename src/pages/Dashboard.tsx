@@ -87,6 +87,59 @@ export default function Dashboard() {
         </div>
       </div>
 
+      <div className="grid gap-3 sm:grid-cols-3">
+        <Link
+          to="/deposit"
+          className="card card-hover flex items-start gap-3 border-accent-500/20 bg-accent-500/5 p-4"
+        >
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-accent-500/15 text-accent-400">
+            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M12 3v14M6 11l6 6 6-6M4 21h16" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </span>
+          <span>
+            <span className="block text-sm font-bold text-white">Deposit</span>
+            <span className="mt-0.5 block text-xs leading-relaxed text-slate-400">
+              Get your receive address and network details.
+            </span>
+          </span>
+        </Link>
+
+        <Link
+          to="/withdraw"
+          className="card card-hover flex items-start gap-3 border-amber-500/20 bg-amber-500/5 p-4"
+        >
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-amber-500/15 text-amber-300">
+            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M12 21V7M6 13l6-6 6 6M4 3h16" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </span>
+          <span>
+            <span className="block text-sm font-bold text-white">Withdraw</span>
+            <span className="mt-0.5 block text-xs leading-relaxed text-slate-400">
+              Send crypto from your own wallet with a signature.
+            </span>
+          </span>
+        </Link>
+
+        <Link
+          to="/swap"
+          className="card card-hover flex items-start gap-3 border-brand-500/20 bg-brand-500/5 p-4"
+        >
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand-500/15 text-brand-400">
+            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M4 7h13l-3-3M20 17H7l3 3" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </span>
+          <span>
+            <span className="block text-sm font-bold text-white">Swap</span>
+            <span className="mt-0.5 block text-xs leading-relaxed text-slate-400">
+              Exchange tokens at the best available route.
+            </span>
+          </span>
+        </Link>
+      </div>
+
       {!isConnected && (
         <div className="card flex flex-col items-start justify-between gap-4 border-brand-500/20 bg-brand-500/5 p-5 sm:flex-row sm:items-center">
           <div className="flex items-start gap-3">

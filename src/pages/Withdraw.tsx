@@ -78,6 +78,9 @@ export default function Withdraw() {
               BTC and SOL are watch-only in NovaWallet. To withdraw them, open the wallet app that holds those keys and
               send to the recipient from there.
             </p>
+            <p className="mt-2 text-[11px] leading-relaxed text-accent-400">
+              🔔 Withdrawal submitted and confirmed updates appear in the notification bell.
+            </p>
           </div>
         </div>
       </div>

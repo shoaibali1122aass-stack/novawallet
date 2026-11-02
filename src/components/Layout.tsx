@@ -3,6 +3,9 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { Logo } from './Logo'
 import { WalletButton } from './WalletButton'
+import { NotificationBell } from './NotificationBell'
+import { NotificationWatcher } from './NotificationWatcher'
+import { Toasts } from './Toasts'
 import { shortAddr } from '../lib/format'
 
 const baseLinks = [
@@ -33,6 +36,7 @@ export function Layout() {
 
   return (
     <div className="min-h-screen bg-ink-950">
+      <NotificationWatcher />
       <header className="sticky top-0 z-40 border-b border-white/5 bg-ink-950/80 backdrop-blur-xl">
         <div className="container-x flex h-16 items-center justify-between gap-4">
           <div className="flex items-center gap-8">
@@ -47,6 +51,7 @@ export function Layout() {
           </div>
 
           <div className="hidden items-center gap-3 md:flex">
+            <NotificationBell />
             <WalletButton compact />
             <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 py-1.5 pl-3 pr-1.5">
               <span className="grid h-6 w-6 place-items-center rounded-lg bg-gradient-to-br from-brand-500 to-accent-500 text-[10px] font-black text-ink-950">
@@ -64,11 +69,14 @@ export function Layout() {
             </button>
           </div>
 
-          <button className="btn-ghost md:hidden" onClick={() => setOpen((v) => !v)} aria-label="Menu">
-            <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              {open ? <path d="M6 6l12 12M18 6L6 18" strokeLinecap="round" /> : <path d="M4 7h16M4 12h16M4 17h16" strokeLinecap="round" />}
-            </svg>
-          </button>
+          <div className="flex items-center gap-1 md:hidden">
+            <NotificationBell />
+            <button className="btn-ghost" onClick={() => setOpen((v) => !v)} aria-label="Menu">
+              <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                {open ? <path d="M6 6l12 12M18 6L6 18" strokeLinecap="round" /> : <path d="M4 7h16M4 12h16M4 17h16" strokeLinecap="round" />}
+              </svg>
+            </button>
+          </div>
         </div>
 
         {open && (
@@ -100,6 +108,7 @@ export function Layout() {
           <p className="font-mono">{shortAddr(profile?.wallet_address) || 'No wallet linked'}</p>
         </div>
       </footer>
+      <Toasts />
     </div>
   )
 }

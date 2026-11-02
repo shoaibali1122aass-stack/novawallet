@@ -118,6 +118,12 @@ export default function Deposit() {
               Send only {meta.coin} or the listed tokens on {meta.label} to this address. Assets sent on the wrong
               network can be lost permanently.
             </div>
+            <div className="mt-3 flex items-start gap-2 rounded-xl border border-accent-500/20 bg-accent-500/5 p-3 text-[11px] leading-relaxed text-accent-300">
+              <span className="mt-0.5 font-bold">🔔</span>
+              <span>
+                We watch this address while you are signed in and notify you here as soon as a new deposit is detected.
+              </span>
+            </div>
           </div>
 
           <div className="card p-6">

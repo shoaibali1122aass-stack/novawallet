@@ -11,6 +11,7 @@ import {
 import { formatUnits, parseUnits } from 'viem'
 import { CHAIN_META, TOKENS, erc20Abi, type SupportedChainId } from '../lib/chains'
 import { WalletButton } from '../components/WalletButton'
+import { notify } from '../lib/notifications'
 import { fmtAmount, shortAddr } from '../lib/format'
 
 const ZERO = '0x0000000000000000000000000000000000000000' as const
@@ -62,6 +63,11 @@ export default function Swap() {
   const [status, setStatus] = useState('')
 
   const { isLoading: confirming, isSuccess } = useWaitForTransactionReceipt({ hash })
+
+  useEffect(() => {
+    if (!hash || !isSuccess) return
+    notify('swap', 'Swap confirmed', `Transaction ${shortAddr(hash, 8)} is confirmed on-chain.`)
+  }, [hash, isSuccess])
 
   const meta = chain ? CHAIN_META[chain.id] : undefined
   const tokens = chain ? TOKENS[chain.id] ?? [] : []
@@ -175,6 +181,7 @@ export default function Swap() {
         gas: tx.gasLimit ? BigInt(tx.gasLimit) : undefined,
       })
       setHash(txHash)
+      notify('swap', 'Swap submitted', `${amount} ${from.symbol} → ${to?.symbol ?? 'token'} submitted. Waiting for confirmation.`)
       setStatus('Swap submitted. Waiting for confirmation…')
     } catch (err) {
       setError(err instanceof Error ? err.message.split('\n')[0] : 'The swap was rejected.')

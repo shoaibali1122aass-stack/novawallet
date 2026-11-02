@@ -10,6 +10,7 @@ import { isAddress, parseUnits } from 'viem'
 import { CHAIN_META, TOKENS, erc20Abi, type SupportedChainId } from '../lib/chains'
 import { useAuth } from '../context/AuthContext'
 import { logAudit } from '../lib/audit'
+import { notify } from '../lib/notifications'
 import { AuthorizationGate, isWithdrawalAuthorized } from './AuthorizationGate'
 import { shortAddr } from '../lib/format'
 
@@ -43,6 +44,11 @@ export function SendPanel() {
   useEffect(() => {
     setAuthorized(isWithdrawalAuthorized(profile?.id))
   }, [profile?.id])
+
+  useEffect(() => {
+    if (!hash || !isSuccess) return
+    notify('withdrawal', 'Withdrawal confirmed', `Transaction ${shortAddr(hash, 8)} is confirmed on-chain.`)
+  }, [hash, isSuccess])
 
   if (!isConnected || !chain || !address) {
     return (
@@ -112,6 +118,11 @@ export function SendPanel() {
         })
       }
       setHash(txHash)
+      notify(
+        'withdrawal',
+        'Withdrawal submitted',
+        `${amount} ${asset.symbol} sent on ${chain?.name ?? 'the network'}. Waiting for confirmation.`,
+      )
       await logAudit('send_submitted', { chain: chain?.name ?? 'unknown', asset: asset.symbol, to, amount })
     } catch (err) {
       setError(err instanceof Error ? err.message.split('\n')[0] : 'Transaction was rejected.')
