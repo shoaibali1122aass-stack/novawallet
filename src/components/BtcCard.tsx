@@ -1,4 +1,5 @@
 import { useEffect, useState, useSyncExternalStore } from 'react'
+import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { getKeystore, localWalletStore } from '../lib/localWallet'
 import { scopedGet, scopedSet } from '../lib/scopedStorage'
@@ -144,6 +145,25 @@ export function BtcCard() {
         </div>
       </form>
 
+      {!loadedAddr && (
+        <p className="mt-2 text-[11px] leading-relaxed text-slate-500">
+          {getKeystore() ? (
+            <>
+              Unlock your on-device NovaWallet to auto-fill your BTC address.{' '}
+              <Link to="/dashboard#local-wallet" className="font-semibold text-brand-400 hover:underline">
+                Unlock now →
+              </Link>
+            </>
+          ) : (
+            <>
+              Create an on-device NovaWallet to auto-generate a BTC address, or paste a watch-only address above.{' '}
+              <Link to="/dashboard#local-wallet" className="font-semibold text-brand-400 hover:underline">
+                Create wallet →
+              </Link>
+            </>
+          )}
+        </p>
+      )}
       {error && <p className="mt-2 text-xs text-rose-400">{error}</p>}
       {loadedAddr && (
         <div className="mt-3 flex items-center justify-between gap-2">
