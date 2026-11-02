@@ -54,6 +54,26 @@ export function clearNotifications() {
   publish()
 }
 
+const SUPPRESS_KEY = 'nova_suppress_deposit_until'
+const SUPPRESS_MS = 120_000
+
+export function suppressDepositAlerts(ms = SUPPRESS_MS) {
+  try {
+    localStorage.setItem(SUPPRESS_KEY, String(Date.now() + ms))
+  } catch {
+    /* storage unavailable */
+  }
+}
+
+export function depositAlertsSuppressed() {
+  try {
+    const until = Number(localStorage.getItem(SUPPRESS_KEY) ?? 0)
+    return Number.isFinite(until) && Date.now() < until
+  } catch {
+    return false
+  }
+}
+
 export function notificationIcon(kind: NotificationKind) {
   if (kind === 'deposit') return '↓'
   if (kind === 'withdrawal') return '↑'

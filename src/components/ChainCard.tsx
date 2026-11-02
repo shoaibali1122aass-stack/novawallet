@@ -16,7 +16,11 @@ export function ChainCard({
   const meta = CHAIN_META[chain.id]
   const tokens = TOKENS[chain.id] ?? []
 
-  const native = useBalance({ address, chainId: chain.id, query: { enabled: Boolean(address) } })
+  const native = useBalance({
+    address,
+    chainId: chain.id,
+    query: { enabled: Boolean(address), refetchInterval: 20_000 },
+  })
 
   const reads = useReadContracts({
     contracts: address
@@ -28,7 +32,7 @@ export function ChainCard({
           chainId: chain.id,
         }))
       : [],
-    query: { enabled: Boolean(address) },
+    query: { enabled: Boolean(address), refetchInterval: 30_000 },
   })
 
   const nativeValue = native.data ? Number(formatUnits(native.data.value, native.data.decimals)) : 0

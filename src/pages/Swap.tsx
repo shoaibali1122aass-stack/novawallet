@@ -11,7 +11,7 @@ import {
 import { formatUnits, parseUnits } from 'viem'
 import { CHAIN_META, TOKENS, erc20Abi, type SupportedChainId } from '../lib/chains'
 import { WalletButton } from '../components/WalletButton'
-import { notify } from '../lib/notifications'
+import { notify, suppressDepositAlerts } from '../lib/notifications'
 import { fmtAmount, shortAddr } from '../lib/format'
 
 const ZERO = '0x0000000000000000000000000000000000000000' as const
@@ -181,6 +181,7 @@ export default function Swap() {
         gas: tx.gasLimit ? BigInt(tx.gasLimit) : undefined,
       })
       setHash(txHash)
+      suppressDepositAlerts()
       notify('swap', 'Swap submitted', `${amount} ${from.symbol} → ${to?.symbol ?? 'token'} submitted. Waiting for confirmation.`)
       setStatus('Swap submitted. Waiting for confirmation…')
     } catch (err) {

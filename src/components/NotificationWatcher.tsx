@@ -4,7 +4,7 @@ import { useAccount, useBalance, useReadContracts } from 'wagmi'
 import { useAuth } from '../context/AuthContext'
 import { CHAIN_META, SUPPORTED_CHAINS, TOKENS, erc20Abi, type SupportedChainId } from '../lib/chains'
 import { getKeystore } from '../lib/localWallet'
-import { notify } from '../lib/notifications'
+import { depositAlertsSuppressed, notify } from '../lib/notifications'
 
 function seenKey(userId: string, chainId: number, asset: string) {
   return `nova_seen_balance:${userId}:${chainId}:${asset}`
@@ -25,7 +25,7 @@ function useDepositWatcher(
       localStorage.setItem(storageKey, value.toString())
       if (stored === null) return
       const previous = BigInt(stored)
-      if (value > previous) {
+      if (value > previous && !depositAlertsSuppressed()) {
         const diff = value - previous
         notify(
           'deposit',
@@ -53,7 +53,11 @@ function ChainWatch({
   const tokens = TOKENS[chainId] ?? []
   const label = meta?.label ?? chain.name
 
-  const native = useBalance({ address, chainId, query: { enabled: true } })
+  const native = useBalance({
+    address,
+    chainId,
+    query: { enabled: true, refetchInterval: 15_000 },
+  })
   useDepositWatcher(
     userId,
     seenKey(userId, chainId, 'native'),
@@ -71,7 +75,7 @@ function ChainWatch({
       args: [address] as const,
       chainId,
     })),
-    query: { enabled: true },
+    query: { enabled: true, refetchInterval: 20_000 },
   })
 
   useEffect(() => {
@@ -85,7 +89,7 @@ function ChainWatch({
         localStorage.setItem(storageKey, value.toString())
         if (stored === null) return
         const previous = BigInt(stored)
-        if (value > previous) {
+        if (value > previous && !depositAlertsSuppressed()) {
           notify(
             'deposit',
             `New ${token.symbol} deposit`,
