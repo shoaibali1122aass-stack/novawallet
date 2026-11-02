@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { Logo } from './Logo'
-import { WalletButton } from './WalletButton'
 import { NotificationBell } from './NotificationBell'
 import { NotificationWatcher } from './NotificationWatcher'
 import { Toasts } from './Toasts'
@@ -52,7 +51,6 @@ export function Layout() {
 
           <div className="hidden items-center gap-3 md:flex">
             <NotificationBell />
-            <WalletButton compact />
             <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 py-1.5 pl-3 pr-1.5">
               <span className="grid h-6 w-6 place-items-center rounded-lg bg-gradient-to-br from-brand-500 to-accent-500 text-[10px] font-black text-ink-950">
                 {(profile?.email ?? 'U').slice(0, 1).toUpperCase()}

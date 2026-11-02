@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import { Link, Navigate } from 'react-router-dom'
 import { Logo } from '../components/Logo'
 import { useAuth } from '../context/AuthContext'
 
@@ -61,7 +61,9 @@ const steps = [
 ]
 
 export default function Landing() {
-  const { session } = useAuth()
+  const { session, loading } = useAuth()
+
+  if (!loading && session) return <Navigate to="/dashboard" replace />
 
   return (
     <div className="min-h-screen bg-ink-950">
@@ -110,7 +112,24 @@ export default function Landing() {
               </Link>
               <a href="#security" className="btn-secondary px-6 py-3 text-base">How we stay safe</a>
             </div>
-            <div className="mt-10 grid max-w-lg grid-cols-3 gap-4">
+            <div className="mt-8 grid max-w-lg gap-3 sm:grid-cols-3">
+              {[
+                { to: '/deposit', t: 'Deposit', d: 'Get your address' },
+                { to: '/withdraw', t: 'Withdraw', d: 'Send from your wallet' },
+                { to: '/swap', t: 'Swap', d: 'Exchange tokens' },
+              ].map((a) => (
+                <Link
+                  key={a.to}
+                  to={a.to}
+                  className="rounded-xl border border-white/10 bg-white/[0.03] p-3 transition hover:border-brand-500/40 hover:bg-brand-500/10"
+                >
+                  <span className="block text-sm font-bold text-white">{a.t}</span>
+                  <span className="mt-0.5 block text-[11px] text-slate-500">{a.d}</span>
+                </Link>
+              ))}
+            </div>
+
+            <div className="mt-6 grid max-w-lg grid-cols-3 gap-4">
               {[
                 ['6+', 'Networks'],
                 ['0', 'Keys stored'],

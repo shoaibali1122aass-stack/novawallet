@@ -7,7 +7,6 @@ import { ChainCard } from '../components/ChainCard'
 import { BtcCard } from '../components/BtcCard'
 import { SolCard } from '../components/SolCard'
 import { SendPanel } from '../components/SendPanel'
-import { WalletButton } from '../components/WalletButton'
 import { LocalWalletCard } from '../components/LocalWalletCard'
 import { WatchWalletCard } from '../components/WatchWalletCard'
 import { CopyButton } from '../components/CopyButton'
@@ -83,7 +82,6 @@ export default function Dashboard() {
           <Link to="/swap" className="btn-secondary">
             Swap
           </Link>
-          <WalletButton />
         </div>
       </div>
 
@@ -139,34 +137,6 @@ export default function Dashboard() {
           </span>
         </Link>
       </div>
-
-      {!isConnected && (
-        <div className="card flex flex-col items-start justify-between gap-4 border-brand-500/20 bg-brand-500/5 p-5 sm:flex-row sm:items-center">
-          <div className="flex items-start gap-3">
-            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-brand-500/15 text-brand-400">
-              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <rect x="2" y="6" width="20" height="13" rx="3" />
-                <path d="M16 12h.01M2 10h20" strokeLinecap="round" />
-              </svg>
-            </span>
-            <div>
-              <p className="text-sm font-semibold text-white">Connect a wallet or track an address</p>
-              <p className="text-xs text-slate-400">
-                Balances are read directly from public RPCs. You can{' '}
-                <a href="#local-wallet" className="font-semibold text-brand-400 hover:underline">
-                  create or import a wallet
-                </a>{' '}
-                on this device or{' '}
-                <a href="#add-wallet" className="font-semibold text-brand-400 hover:underline">
-                  track any address
-                </a>{' '}
-                without connecting an external wallet.
-              </p>
-            </div>
-          </div>
-          <WalletButton compact />
-        </div>
-      )}
 
       <div className="grid items-start gap-4 lg:grid-cols-2">
         <LocalWalletCard />
