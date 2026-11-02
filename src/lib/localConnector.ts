@@ -142,7 +142,7 @@ export function localWalletConnector() {
           parameters.withCapabilities
             ? addresses.map((address) => ({ address, capabilities: {} }))
             : addresses
-        ) as withCapabilities extends true
+        ) as unknown as withCapabilities extends true
           ? readonly { address: `0x${string}`; capabilities: Record<string, unknown> }[]
           : readonly `0x${string}`[]
         return { accounts, chainId }
