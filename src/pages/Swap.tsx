@@ -15,7 +15,7 @@ import { CHAIN_META, TOKENS, erc20Abi, type SupportedChainId } from '../lib/chai
 import { WalletButton } from '../components/WalletButton'
 import { notify, suppressDepositAlerts } from '../lib/notifications'
 import { sendEmailNotification } from '../lib/emailNotifications'
-import { fmtAmount, shortAddr } from '../lib/format'
+import { fmtAmount, fmtUsd, shortAddr } from '../lib/format'
 
 const ZERO = '0x0000000000000000000000000000000000000000' as const
 
@@ -25,6 +25,30 @@ type Asset = {
   decimals: number
   kind: 'native' | 'token'
   address?: `0x${string}`
+}
+
+function sumUsd(costs?: LiFiCost[]) {
+  return (costs ?? []).reduce((total, cost) => {
+    const value = Number(cost.amountUSD)
+    return total + (Number.isFinite(value) ? value : 0)
+  }, 0)
+}
+
+function costAmounts(costs?: LiFiCost[]) {
+  const groups = new Map<string, number>()
+  for (const cost of costs ?? []) {
+    if (!cost.amount || cost.token?.decimals === undefined) continue
+    try {
+      const amount = Number(formatUnits(BigInt(cost.amount), cost.token.decimals))
+      const symbol = cost.token.symbol ?? ''
+      groups.set(symbol, (groups.get(symbol) ?? 0) + amount)
+    } catch {
+      /* ignore malformed cost */
+    }
+  }
+  return Array.from(groups.entries())
+    .map(([symbol, amount]) => `${fmtAmount(amount, 6)} ${symbol}`.trim())
+    .join(' + ')
 }
 
 function SwapBalance({
@@ -65,13 +89,25 @@ function SwapBalance({
   )
 }
 
+type LiFiCost = {
+  amount?: string
+  amountUSD?: string
+  included?: boolean
+  name?: string
+  token?: { symbol?: string; decimals?: number }
+}
+
 type LiFiQuote = {
   estimate?: {
     fromAmount?: string
     toAmount?: string
     toAmountMin?: string
+    fromAmountUSD?: string
+    toAmountUSD?: string
     approvalAddress?: string
     executionDuration?: number
+    gasCosts?: LiFiCost[]
+    feeCosts?: LiFiCost[]
   }
   action?: {
     fromToken?: { symbol?: string; decimals?: number }
@@ -154,6 +190,13 @@ export default function Swap() {
   const toAmountRaw = quote?.estimate?.toAmount
   const toAmount = to && toAmountRaw ? Number(formatUnits(BigInt(toAmountRaw), to.decimals)) : 0
   const rate = Number(amount) > 0 ? toAmount / Number(amount) : 0
+  const gasUsd = sumUsd(quote?.estimate?.gasCosts)
+  const feeUsd = sumUsd(quote?.estimate?.feeCosts)
+  const totalFeeUsd = gasUsd + feeUsd
+  const gasTokens = costAmounts(quote?.estimate?.gasCosts)
+  const feeTokens = costAmounts(quote?.estimate?.feeCosts)
+  const feeIncluded = (quote?.estimate?.feeCosts ?? []).some((fee) => fee.included)
+  const totalFeeText = totalFeeUsd > 0 ? fmtUsd(totalFeeUsd) : [gasTokens, feeTokens].filter(Boolean).join(' + ') || '—'
 
   async function fetchQuote(e?: FormEvent) {
     e?.preventDefault()
@@ -344,6 +387,28 @@ export default function Swap() {
               <span className="font-mono text-slate-300">
                 1 {from?.symbol} ≈ {fmtAmount(rate, 6)} {to?.symbol}
               </span>
+            </div>
+            <div className="mt-1 flex items-center justify-between">
+              <span className="text-slate-500">Network fee (estimated)</span>
+              <span className="font-mono text-slate-300">
+                {gasTokens}
+                {gasTokens && gasUsd > 0 ? ' · ' : ''}
+                {gasUsd > 0 ? fmtUsd(gasUsd) : gasTokens ? '' : '—'}
+              </span>
+            </div>
+            {(feeUsd > 0 || feeTokens) && (
+              <div className="mt-1 flex items-center justify-between">
+                <span className="text-slate-500">Swap fee{feeIncluded ? ' (included)' : ''}</span>
+                <span className="font-mono text-slate-300">
+                  {feeTokens}
+                  {feeTokens && feeUsd > 0 ? ' · ' : ''}
+                  {feeUsd > 0 ? fmtUsd(feeUsd) : ''}
+                </span>
+              </div>
+            )}
+            <div className="mt-1 flex items-center justify-between border-t border-white/5 pt-1.5">
+              <span className="text-slate-400">Total fees (estimated)</span>
+              <span className="font-mono font-semibold text-white">{totalFeeText}</span>
             </div>
             {quote.estimate?.executionDuration !== undefined && (
               <div className="mt-1 flex items-center justify-between">
