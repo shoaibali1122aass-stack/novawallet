@@ -6,6 +6,7 @@ import { NotificationBell } from './NotificationBell'
 import { NotificationWatcher } from './NotificationWatcher'
 import { Toasts } from './Toasts'
 import { shortAddr } from '../lib/format'
+import { APP_VERSION } from '../lib/version'
 
 const baseLinks = [
   { to: '/dashboard', label: 'Wallet' },
@@ -102,7 +103,7 @@ export function Layout() {
 
       <footer className="border-t border-white/5 py-6">
         <div className="container-x flex flex-col items-center justify-between gap-2 text-xs text-slate-500 sm:flex-row">
-          <p>© {new Date().getFullYear()} NovaWallet. Non-custodial — your keys never leave your device.</p>
+          <p>© {new Date().getFullYear()} NovaWallet. Non-custodial — your keys never leave your device. · v{APP_VERSION}</p>
           <p className="font-mono">{shortAddr(profile?.wallet_address) || 'No wallet linked'}</p>
         </div>
       </footer>

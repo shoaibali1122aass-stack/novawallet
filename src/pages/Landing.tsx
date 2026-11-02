@@ -1,6 +1,7 @@
 import { Link, Navigate } from 'react-router-dom'
 import { Logo } from '../components/Logo'
 import { useAuth } from '../context/AuthContext'
+import { APP_VERSION } from '../lib/version'
 
 const coins = [
   { sym: 'BTC', name: 'Bitcoin', color: '#f7931a', amount: '0.8421 BTC' },
@@ -304,7 +305,7 @@ export default function Landing() {
         <div className="container-x flex flex-col items-center justify-between gap-4 text-xs text-slate-500 sm:flex-row">
           <div className="flex items-center gap-3">
             <Logo compact />
-            <span>© {new Date().getFullYear()} NovaWallet. Non-custodial by design.</span>
+            <span>© {new Date().getFullYear()} NovaWallet. Non-custodial by design. · v{APP_VERSION}</span>
           </div>
           <div className="flex gap-5">
             <a href="#security" className="hover:text-slate-300">Security</a>
