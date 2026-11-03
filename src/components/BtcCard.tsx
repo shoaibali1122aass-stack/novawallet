@@ -41,7 +41,8 @@ export function BtcCard() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  const derivedAddress = getKeystore()?.btcAddress ?? ''
+  const keystore = getKeystore()
+  const derivedAddress = keystore?.btcAddress ?? ''
 
   async function load(a: string, persist = false) {
     const clean = a.trim()
@@ -74,7 +75,7 @@ export function BtcCard() {
     setData(null)
     setError('')
     const saved = scopedGet(BTC_BASE, userId)
-    const initial = saved || getKeystore()?.btcAddress || ''
+    const initial = derivedAddress || (keystore ? '' : saved) || ''
     setAddr(initial)
     setLoadedAddr(initial)
     if (initial) load(initial)
@@ -125,7 +126,12 @@ export function BtcCard() {
         }}
       >
         <label className="label">
-          Bitcoin address {derivedAddress ? '(your NovaWallet address)' : '(watch-only)'}
+          Bitcoin address{' '}
+          {derivedAddress
+            ? '(your NovaWallet address)'
+            : keystore
+              ? '(unlock to load your wallet address)'
+              : '(watch-only)'}
         </label>
         <div className="flex gap-2">
           <input

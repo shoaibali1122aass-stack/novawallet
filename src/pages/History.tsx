@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { CopyButton } from '../components/CopyButton'
 import { useReceiveAddress } from '../hooks/useReceiveAddress'
-import { getKeystore } from '../lib/localWallet'
+import { getKeystore, localWalletStore } from '../lib/localWallet'
 import { clearOnChainCache, fetchOnChainHistory } from '../lib/onChainHistory'
 import { scopedGet } from '../lib/scopedStorage'
 import { timeAgo } from '../lib/format'
@@ -132,6 +132,11 @@ function TxCard({ record, onRemove }: { record: TxRecord; onRemove: () => void }
 export default function History() {
   const { profile } = useAuth()
   const { address: evmAddress } = useReceiveAddress()
+  const wallet = useSyncExternalStore(
+    localWalletStore.subscribe,
+    localWalletStore.getSnapshot,
+    localWalletStore.getSnapshot,
+  )
   const [localItems, setLocalItems] = useState<TxRecord[]>([])
   const [onChainItems, setOnChainItems] = useState<TxRecord[]>([])
   const [errors, setErrors] = useState<string[]>([])
@@ -144,10 +149,10 @@ export default function History() {
   const extraAddresses = useMemo(() => {
     const keystore = getKeystore()
     return {
-      btc: scopedGet('nova_btc_address', profile?.id) || keystore?.btcAddress || '',
-      sol: scopedGet('nova_sol_address', profile?.id) || keystore?.solAddress || '',
+      btc: keystore?.btcAddress || scopedGet('nova_btc_address', profile?.id) || '',
+      sol: keystore?.solAddress || scopedGet('nova_sol_address', profile?.id) || '',
     }
-  }, [profile?.id])
+  }, [profile?.id, wallet.address])
 
   useEffect(() => {
     const refresh = () => setLocalItems(listTxHistory(profile?.id))

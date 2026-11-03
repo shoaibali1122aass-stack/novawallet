@@ -52,7 +52,8 @@ export function SolCard() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  const derivedAddress = getKeystore()?.solAddress ?? ''
+  const keystore = getKeystore()
+  const derivedAddress = keystore?.solAddress ?? ''
 
   async function load(a: string, persist = false) {
     const clean = a.trim()
@@ -90,7 +91,7 @@ export function SolCard() {
     setLamports(null)
     setError('')
     const saved = scopedGet(SOL_BASE, userId)
-    const initial = saved || getKeystore()?.solAddress || ''
+    const initial = derivedAddress || (keystore ? '' : saved) || ''
     setAddr(initial)
     setLoadedAddr(initial)
     if (initial) load(initial)
@@ -133,7 +134,12 @@ export function SolCard() {
         }}
       >
         <label className="label">
-          Solana address {derivedAddress ? '(your NovaWallet address)' : '(watch-only)'}
+          Solana address{' '}
+          {derivedAddress
+            ? '(your NovaWallet address)'
+            : keystore
+              ? '(unlock to load your wallet address)'
+              : '(watch-only)'}
         </label>
         <div className="flex gap-2">
           <input
@@ -151,7 +157,12 @@ export function SolCard() {
 
       {!loadedAddr && (
         <p className="mt-2 text-[11px] leading-relaxed text-slate-500">
-          {getKeystore() ? (
+          {getKeystore()?.kind === 'privateKey' ? (
+            <>
+              Solana needs a recovery-phrase wallet. A 32-byte private key only derives EVM and BTC addresses. Import a
+              recovery phrase, or paste a watch-only address above.
+            </>
+          ) : getKeystore() ? (
             <>
               Unlock your on-device NovaWallet to auto-fill your SOL address.{' '}
               <Link to="/dashboard#local-wallet" className="font-semibold text-brand-400 hover:underline">
