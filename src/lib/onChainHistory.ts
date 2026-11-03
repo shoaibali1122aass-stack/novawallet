@@ -88,7 +88,7 @@ export function clearOnChainCache() {
   cache.clear()
 }
 
-async function readJson(url: string, signal: AbortSignal, timeoutMs: number, proxied = false): Promise<unknown> {
+async function readJson(url: string, signal: AbortSignal, timeoutMs: number): Promise<unknown> {
   const controller = new AbortController()
   const timer = window.setTimeout(() => controller.abort(), timeoutMs)
   const abort = () => controller.abort()
@@ -96,14 +96,10 @@ async function readJson(url: string, signal: AbortSignal, timeoutMs: number, pro
   try {
     const res = await fetch(url, {
       signal: controller.signal,
-      headers: { accept: proxied ? 'text/plain' : 'application/json' },
+      headers: { accept: 'application/json' },
     })
-    let body = await res.text()
+    const body = await res.text()
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
-    if (proxied) {
-      const marker = body.indexOf('Markdown Content:')
-      if (marker >= 0) body = body.slice(marker + 'Markdown Content:'.length)
-    }
     const objectStart = body.indexOf('{')
     const arrayStart = body.indexOf('[')
     const start =
@@ -119,15 +115,9 @@ async function readJson(url: string, signal: AbortSignal, timeoutMs: number, pro
 async function fetchJson(url: string, signal: AbortSignal): Promise<unknown> {
   const cached = cacheGet(url)
   if (cached !== null) return cached
-  try {
-    const data = await readJson(url, signal, 12_000)
-    cacheSet(url, data)
-    return data
-  } catch {
-    const data = await readJson(`https://r.jina.ai/${url}`, signal, 40_000, true)
-    cacheSet(url, data)
-    return data
-  }
+  const data = await readJson(url, signal, 8_000)
+  cacheSet(url, data)
+  return data
 }
 
 function itemsFrom(payload: unknown): unknown[] {
@@ -485,7 +475,7 @@ async function fetchBitcoin(address: string, signal: AbortSignal): Promise<TxRec
       const payload = await readJson(
         `${base}/api/address/${encodeURIComponent(address)}/txs`,
         signal,
-        15_000,
+        8_000,
       )
       if (!Array.isArray(payload)) throw new Error('Unexpected Bitcoin response')
       return parseBitcoin(payload, address)
@@ -619,9 +609,12 @@ async function fetchSolana(address: string, signal: AbortSignal): Promise<TxReco
   return records
 }
 
-export async function fetchOnChainHistory(addresses: OnChainAddresses): Promise<OnChainFetchResult> {
+export async function fetchOnChainHistory(
+  addresses: OnChainAddresses,
+  onUpdate?: (result: OnChainFetchResult) => void,
+): Promise<OnChainFetchResult> {
   const controller = new AbortController()
-  const timer = window.setTimeout(() => controller.abort(), 70_000)
+  const timer = window.setTimeout(() => controller.abort(), 20_000)
   try {
     const tasks: { label: string; run: Promise<TxRecord[]> }[] = []
     const evm = addresses.evm?.trim()
@@ -638,22 +631,33 @@ export async function fetchOnChainHistory(addresses: OnChainAddresses): Promise<
     if (btc) tasks.push({ label: 'Bitcoin', run: fetchBitcoin(btc, controller.signal) })
     if (sol) tasks.push({ label: 'Solana', run: fetchSolana(sol, controller.signal) })
 
-    const settled = await Promise.allSettled(tasks.map((task) => task.run))
     const records: TxRecord[] = []
     const errors: string[] = []
     const seen = new Set<string>()
-    settled.forEach((result, index) => {
-      if (result.status === 'fulfilled') {
-        for (const record of result.value) {
-          if (seen.has(record.id)) continue
-          seen.add(record.id)
-          records.push(record)
-        }
-      } else {
-        const message = result.reason instanceof Error ? result.reason.message : 'could not load'
-        errors.push(`${tasks[index].label}: ${message}`)
-      }
-    })
+    const publish = () => {
+      const sorted = [...records].sort((a, b) => b.createdAt - a.createdAt).slice(0, 150)
+      onUpdate?.({ records: sorted, errors: [...errors] })
+    }
+
+    await Promise.allSettled(
+      tasks.map((task) =>
+        task.run.then(
+          (value) => {
+            for (const record of value) {
+              if (seen.has(record.id)) continue
+              seen.add(record.id)
+              records.push(record)
+            }
+            publish()
+          },
+          (reason) => {
+            const message = reason instanceof Error ? reason.message : 'could not load'
+            errors.push(`${task.label}: ${message}`)
+            publish()
+          },
+        ),
+      ),
+    )
     records.sort((a, b) => b.createdAt - a.createdAt)
     return { records: records.slice(0, 150), errors }
   } finally {

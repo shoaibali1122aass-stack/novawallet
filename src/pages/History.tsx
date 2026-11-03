@@ -159,12 +159,20 @@ export default function History() {
     if (!evmAddress && !extraAddresses.btc && !extraAddresses.sol) {
       setOnChainItems([])
       setErrors([])
+      setLoading(false)
+      setRefreshedAt(null)
       return
     }
     let alive = true
     setLoading(true)
     setErrors([])
-    fetchOnChainHistory({ evm: evmAddress, btc: extraAddresses.btc, sol: extraAddresses.sol })
+    setRefreshedAt(null)
+    fetchOnChainHistory({ evm: evmAddress, btc: extraAddresses.btc, sol: extraAddresses.sol }, (partial) => {
+      if (!alive) return
+      setOnChainItems(partial.records)
+      setErrors(partial.errors)
+      setRefreshedAt(Date.now())
+    })
       .then((result) => {
         if (!alive) return
         setOnChainItems(result.records)
@@ -284,7 +292,7 @@ export default function History() {
         </div>
       )}
 
-      {loading && items.length === 0 ? (
+      {loading && items.length === 0 && !refreshedAt ? (
         <div className="card p-10 text-center">
           <p className="text-sm font-semibold text-white">Scanning on-chain activity…</p>
           <p className="mx-auto mt-2 max-w-md text-xs leading-relaxed text-slate-400">

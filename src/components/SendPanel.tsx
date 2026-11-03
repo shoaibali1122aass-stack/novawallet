@@ -1,4 +1,5 @@
 import { useEffect, useState, useSyncExternalStore, type FormEvent, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
 import {
   useAccount,
@@ -101,6 +102,7 @@ export function SendPanel() {
   const [receipt, setReceipt] = useState<TxRecord | null>(null)
   const [error, setError] = useState('')
   const [authorized, setAuthorized] = useState(false)
+  const [reviewing, setReviewing] = useState(false)
 
   const { sendTransactionAsync, isPending: sending } = useSendTransaction()
   const { writeContractAsync, isPending: writing } = useWriteContract()
@@ -198,11 +200,9 @@ export function SendPanel() {
 
   const busy = sending || writing || confirming || switching
 
-  async function submit(e: FormEvent) {
+  function startReview(e: FormEvent) {
     e.preventDefault()
     setError('')
-    setHash(undefined)
-    setReceipt(null)
     if (!isAddress(to)) {
       setError('Enter a valid recipient address.')
       return
@@ -212,6 +212,21 @@ export function SendPanel() {
       setError('Enter a valid amount.')
       return
     }
+    if (!address || !chain) {
+      setError('Open a wallet first.')
+      return
+    }
+    if (!supported) {
+      setError('This network is not supported for in-app sending.')
+      return
+    }
+    setReviewing(true)
+  }
+
+  async function send() {
+    setError('')
+    setHash(undefined)
+    setReceipt(null)
     if (!address || !chain) {
       setError('Open a wallet first.')
       return
@@ -257,14 +272,17 @@ export function SendPanel() {
         to,
         amount,
         hash: txHash,
-      })
+      }).catch(() => {})
     } catch (err) {
       setError(err instanceof Error ? err.message.split('\n')[0] : 'Transaction was rejected.')
+    } finally {
+      setReviewing(false)
     }
   }
 
   return (
-    <form onSubmit={submit} className="card space-y-4 p-6">
+    <>
+    <form onSubmit={startReview} className="card space-y-4 p-6">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-bold text-white">Send on {meta?.label ?? chain.name}</h3>
         <span className="badge border-white/10 bg-white/5 font-mono text-slate-400">{shortAddr(address)}</span>
@@ -415,5 +433,53 @@ export function SendPanel() {
         secret is encrypted in your browser and never sent to our servers.
       </p>
     </form>
+    {reviewing &&
+      createPortal(
+        <div
+          className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Confirm withdrawal"
+          onClick={() => {
+            if (!busy) setReviewing(false)
+          }}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl border border-white/10 bg-ink-900 p-6 shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <h3 className="text-lg font-bold text-white">Confirm withdrawal</h3>
+            <p className="mt-1 text-xs leading-relaxed text-slate-400">
+              Check every detail before sending. A confirmed transfer cannot be reversed.
+            </p>
+
+            <div className="mt-4 rounded-xl border border-white/10 bg-ink-950/60 p-3">
+              <ReceiptRow label="Network" value={meta?.label ?? chain.name} />
+              <ReceiptRow label="Asset" value={asset.symbol} />
+              <ReceiptRow label="From" value={address} />
+              <ReceiptRow label="To" value={to} />
+              <ReceiptRow label="Amount" value={`${amount} ${asset.symbol}`} />
+            </div>
+
+            {error && <p className="mt-3 text-xs text-rose-400">{error}</p>}
+
+            <div className="mt-4 flex gap-2">
+              <button
+                type="button"
+                className="btn-secondary flex-1"
+                disabled={busy}
+                onClick={() => setReviewing(false)}
+              >
+                Cancel
+              </button>
+              <button type="button" className="btn-primary flex-1" disabled={busy} onClick={() => void send()}>
+                {sending || writing ? 'Confirm in your wallet…' : 'Confirm & send'}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body,
+      )}
+    </>
   )
 }
