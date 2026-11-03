@@ -3,6 +3,7 @@ import type { Session } from '@supabase/supabase-js'
 import { useAccount, useDisconnect } from 'wagmi'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
 import { setWalletScope } from '../lib/localWallet'
+import { restoreKeystoreFromAccount } from '../lib/walletSync'
 
 export type Profile = {
   id: string
@@ -52,6 +53,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (prevId && prevId !== nextId && connector?.id === 'novaLocal') disconnect()
       activeUserId.current = nextId
       setWalletScope(nextId)
+      restoreKeystoreFromAccount(s.user.user_metadata)
       const { data } = await supabase.from('profiles').select('*').eq('id', nextId).maybeSingle()
       setProfile((data as Profile) ?? null)
     },

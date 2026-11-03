@@ -16,6 +16,7 @@ import {
 } from '../lib/localWallet'
 import { shortAddr } from '../lib/format'
 import { useAuth } from '../context/AuthContext'
+import { pushKeystoreToAccount } from '../lib/walletSync'
 import { CopyButton } from './CopyButton'
 
 type Mode = 'idle' | 'create' | 'import' | 'unlock'
@@ -167,7 +168,7 @@ export function LocalWalletCard() {
   async function handleRemove() {
     if (
       !window.confirm(
-        'Remove this encrypted wallet from this device? You can only restore it with your recovery phrase.',
+        'Remove this encrypted wallet from your account and this device? You can only restore it with your recovery phrase.',
       )
     ) {
       return
@@ -182,7 +183,8 @@ export function LocalWalletCard() {
     removeKeystore()
     localWalletStore.lock()
     setKeystore(null)
-    finish('Encrypted wallet removed from this device.')
+    void pushKeystoreToAccount(null)
+    finish('Encrypted wallet removed from your account and this device.')
   }
 
   async function createWallet(e: FormEvent) {
@@ -207,6 +209,7 @@ export function LocalWalletCard() {
       const next = withDerivedAddresses(encrypted, mnemonic)
       saveKeystore(next)
       setKeystore(next)
+      void pushKeystoreToAccount(next)
       localWalletStore.setAccount(account)
       await autoConnect()
       finish('Wallet created and encrypted on this device.')
@@ -250,6 +253,7 @@ export function LocalWalletCard() {
       const next = withDerivedAddresses(encrypted, parsed.secret)
       saveKeystore(next)
       setKeystore(next)
+      void pushKeystoreToAccount(next)
       localWalletStore.setAccount(parsed.account)
       await autoConnect()
       finish('Wallet imported and encrypted on this device.')
@@ -272,6 +276,7 @@ export function LocalWalletCard() {
         saveKeystore(next)
         setKeystore(next)
       }
+      void pushKeystoreToAccount(next)
       localWalletStore.setAccount(account)
       await autoConnect()
       finish('Wallet unlocked.')
@@ -292,7 +297,7 @@ export function LocalWalletCard() {
           <h3 className="text-sm font-bold text-white">Create or import a wallet</h3>
           <p className="mt-1 text-xs leading-relaxed text-slate-400">
             EVM wallet for Ethereum, BNB Chain, Polygon, Arbitrum and Base. The secret is encrypted on this device and
-            never sent to our servers.
+            only the encrypted backup is synced to your account — the password never leaves this device.
           </p>
         </div>
         <span className="badge shrink-0 border-white/10 bg-white/5 text-slate-400">On-device</span>
@@ -374,7 +379,7 @@ export function LocalWalletCard() {
               </div>
               <p className="text-[11px] leading-relaxed text-slate-500">
                 Create a fresh 12-word wallet or import a recovery phrase / private key. The encrypted backup is stored
-                only in this browser.
+                in this browser and synced to your account so the same email can restore it on another device.
               </p>
             </>
           )}
@@ -580,7 +585,7 @@ export function LocalWalletCard() {
 
       <p className="mt-3 text-[11px] leading-relaxed text-slate-500">
         {savedAddress
-          ? `Encrypted backup: ${shortAddr(savedAddress, 6)} · stored only in this browser.`
+          ? `Encrypted backup: ${shortAddr(savedAddress, 6)} · synced to your account, still needs your password.`
           : 'No local wallet on this device yet.'}
       </p>
     </div>
