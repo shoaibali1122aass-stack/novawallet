@@ -12,6 +12,7 @@ const baseLinks = [
   { to: '/dashboard', label: 'Wallet' },
   { to: '/deposit', label: 'Deposit' },
   { to: '/withdraw', label: 'Withdraw' },
+  { to: '/history', label: 'History' },
   { to: '/swap', label: 'Swap' },
   { to: '/security', label: 'Security' },
   { to: '/support', label: 'Support' },

@@ -16,9 +16,14 @@ export default function Withdraw() {
             Withdraw by sending crypto from your own wallet. Every transfer is signed on your device.
           </p>
         </div>
-        <Link to="/deposit" className="btn-secondary w-fit">
-          Go to deposit →
-        </Link>
+        <div className="flex w-fit flex-wrap items-center gap-2">
+          <Link to="/history" className="btn-secondary">
+            History
+          </Link>
+          <Link to="/deposit" className="btn-secondary">
+            Go to deposit →
+          </Link>
+        </div>
       </div>
 
       <div className="grid items-start gap-4 lg:grid-cols-2">

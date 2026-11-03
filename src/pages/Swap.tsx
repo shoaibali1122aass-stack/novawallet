@@ -16,6 +16,8 @@ import { WalletButton } from '../components/WalletButton'
 import { notify, suppressDepositAlerts } from '../lib/notifications'
 import { sendEmailNotification } from '../lib/emailNotifications'
 import { fmtAmount, fmtUsd, shortAddr } from '../lib/format'
+import { useAuth } from '../context/AuthContext'
+import { addTxHistory, updateTxHistory, type TxRecord } from '../lib/txHistory'
 
 const ZERO = '0x0000000000000000000000000000000000000000' as const
 
@@ -135,6 +137,7 @@ function SummaryRow({ label, value, strong = false }: { label: string; value: st
 }
 
 export default function Swap() {
+  const { profile } = useAuth()
   const { address, chain, isConnected } = useAccount()
   const { chains, switchChain, isPending: switching } = useSwitchChain()
   const publicClient = usePublicClient({ chainId: chain?.id })
@@ -152,15 +155,21 @@ export default function Swap() {
   const [status, setStatus] = useState('')
   const [reviewOpen, setReviewOpen] = useState(false)
 
-  const { isLoading: confirming, isSuccess } = useWaitForTransactionReceipt({ hash })
+  const { isLoading: confirming, isSuccess, isError: confirmError } = useWaitForTransactionReceipt({ hash })
 
   useEffect(() => {
     if (!hash || !isSuccess) return
+    updateTxHistory(profile?.id, hash, { status: 'confirmed' })
     const title = 'Swap confirmed'
     const body = `Transaction ${shortAddr(hash, 8)} is confirmed on-chain.`
     notify('swap', title, body)
     void sendEmailNotification('swap', title, body, `confirmed:${hash}`)
-  }, [hash, isSuccess])
+  }, [hash, isSuccess, profile?.id])
+
+  useEffect(() => {
+    if (!hash || !confirmError) return
+    updateTxHistory(profile?.id, hash, { status: 'failed' })
+  }, [hash, confirmError, profile?.id])
 
   const meta = chain ? CHAIN_META[chain.id] : undefined
   const tokens = chain ? TOKENS[chain.id] ?? [] : []
@@ -313,6 +322,22 @@ export default function Swap() {
       })
       setHash(txHash)
       suppressDepositAlerts()
+      const chainName = meta?.label ?? chain.name ?? 'Unknown network'
+      const received = to ? `${fmtAmount(toAmount, 6)} ${to.symbol}` : 'token'
+      const record: TxRecord = {
+        id: txHash,
+        kind: 'swap',
+        title: `Swap ${from.symbol} → ${to?.symbol ?? 'token'}`,
+        amount: `${amount} ${from.symbol} → ${received}`,
+        from: address,
+        hash: txHash,
+        chainName,
+        explorerUrl: meta ? `${meta.explorer}/tx/${txHash}` : undefined,
+        status: 'pending',
+        createdAt: Date.now(),
+        note: `Swap routed through LI.FI on ${chainName}.`,
+      }
+      addTxHistory(profile?.id, record)
       const title = 'Swap submitted'
       const body = `${amount} ${from.symbol} → ${to?.symbol ?? 'token'} submitted. Waiting for confirmation.`
       notify('swap', title, body)
@@ -485,16 +510,21 @@ export default function Swap() {
               {isSuccess || confirming ? 'Swap confirmed' : 'Swap submitted'} ·{' '}
               <span className="font-mono text-slate-300">{shortAddr(hash, 8)}</span>
             </p>
-            {meta && (
-              <a
-                href={`${meta.explorer}/tx/${hash}`}
-                target="_blank"
-                rel="noreferrer"
-                className="mt-1 inline-block font-semibold text-brand-400 hover:underline"
-              >
-                View on explorer →
-              </a>
-            )}
+            <div className="mt-1 flex flex-wrap items-center gap-3">
+              {meta && (
+                <a
+                  href={`${meta.explorer}/tx/${hash}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-semibold text-brand-400 hover:underline"
+                >
+                  View on explorer →
+                </a>
+              )}
+              <Link to="/history" className="font-semibold text-brand-400 hover:underline">
+                View history →
+              </Link>
+            </div>
           </div>
         )}
 

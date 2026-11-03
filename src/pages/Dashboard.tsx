@@ -94,6 +94,9 @@ export default function Dashboard() {
           <Link to="/swap" className="btn-secondary">
             Swap
           </Link>
+          <Link to="/history" className="btn-secondary">
+            History
+          </Link>
         </div>
       </div>
 

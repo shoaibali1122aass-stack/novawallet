@@ -1,4 +1,5 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
+import { Link } from 'react-router-dom'
 import {
   useAccount,
   useBalance,
@@ -17,8 +18,10 @@ import { sendEmailNotification } from '../lib/emailNotifications'
 import { AuthorizationGate, isWithdrawalAuthorized } from './AuthorizationGate'
 import { NetworkFee } from './NetworkFee'
 import { WalletConnectPrompt } from './WalletConnectPrompt'
+import { CopyButton } from './CopyButton'
 import { fmtAmount, shortAddr } from '../lib/format'
 import { useReceiveAddress } from '../hooks/useReceiveAddress'
+import { addTxHistory, updateTxHistory, type TxRecord } from '../lib/txHistory'
 
 type Asset = {
   key: string
@@ -66,6 +69,18 @@ function AvailableBalance({
   )
 }
 
+function ReceiptRow({ label, value, children }: { label: string; value: string; children?: ReactNode }) {
+  return (
+    <div className="flex flex-col gap-1 border-t border-white/5 py-2 first:border-0 first:pt-0 last:pb-0 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
+      <span className="shrink-0 text-[11px] uppercase tracking-wider text-slate-500">{label}</span>
+      <span className="flex min-w-0 items-start justify-end gap-2 text-right">
+        <span className="break-all font-mono text-xs text-slate-200">{value}</span>
+        {children}
+      </span>
+    </div>
+  )
+}
+
 export function SendPanel() {
   const { address, chain, isConnected } = useAccount()
   const { profile } = useAuth()
@@ -74,12 +89,13 @@ export function SendPanel() {
   const [amount, setAmount] = useState('')
   const [assetKey, setAssetKey] = useState('native')
   const [hash, setHash] = useState<`0x${string}` | undefined>()
+  const [receipt, setReceipt] = useState<TxRecord | null>(null)
   const [error, setError] = useState('')
   const [authorized, setAuthorized] = useState(false)
 
   const { sendTransactionAsync, isPending: sending } = useSendTransaction()
   const { writeContractAsync, isPending: writing } = useWriteContract()
-  const { isLoading: confirming, isSuccess } = useWaitForTransactionReceipt({ hash })
+  const { isLoading: confirming, isSuccess, isError: confirmError } = useWaitForTransactionReceipt({ hash })
   const { chains, switchChain, isPending: switching, error: switchError } = useSwitchChain()
 
   useEffect(() => {
@@ -92,11 +108,19 @@ export function SendPanel() {
 
   useEffect(() => {
     if (!hash || !isSuccess) return
+    updateTxHistory(profile?.id, hash, { status: 'confirmed' })
+    setReceipt((prev) => (prev && prev.hash === hash ? { ...prev, status: 'confirmed' } : prev))
     const title = 'Withdrawal confirmed'
     const body = `Transaction ${shortAddr(hash, 8)} is confirmed on-chain.`
     notify('withdrawal', title, body)
     void sendEmailNotification('withdrawal', title, body, `confirmed:${hash}`)
-  }, [hash, isSuccess])
+  }, [hash, isSuccess, profile?.id])
+
+  useEffect(() => {
+    if (!hash || !confirmError) return
+    updateTxHistory(profile?.id, hash, { status: 'failed' })
+    setReceipt((prev) => (prev && prev.hash === hash ? { ...prev, status: 'failed' } : prev))
+  }, [hash, confirmError, profile?.id])
 
   if (!isConnected || !chain || !address) {
     return (
@@ -159,6 +183,7 @@ export function SendPanel() {
     e.preventDefault()
     setError('')
     setHash(undefined)
+    setReceipt(null)
     if (!isAddress(to)) {
       setError('Enter a valid recipient address.')
       return
@@ -166,6 +191,10 @@ export function SendPanel() {
     const numeric = Number(amount)
     if (!numeric || numeric <= 0) {
       setError('Enter a valid amount.')
+      return
+    }
+    if (!address || !chain) {
+      setError('Connect a wallet first.')
       return
     }
     try {
@@ -182,11 +211,34 @@ export function SendPanel() {
         })
       }
       setHash(txHash)
+      const chainName = meta?.label ?? chain?.name ?? 'Unknown network'
+      const record: TxRecord = {
+        id: txHash,
+        kind: 'withdrawal',
+        title: `Withdrawal ${asset.symbol}`,
+        amount: `${amount} ${asset.symbol}`,
+        from: address,
+        recipient: to,
+        hash: txHash,
+        chainName,
+        explorerUrl: meta ? `${meta.explorer}/tx/${txHash}` : undefined,
+        status: 'pending',
+        createdAt: Date.now(),
+        note: `Sent from your connected wallet on ${chainName}.`,
+      }
+      addTxHistory(profile?.id, record)
+      setReceipt(record)
       const title = 'Withdrawal submitted'
       const body = `${amount} ${asset.symbol} sent on ${chain?.name ?? 'the network'}. Waiting for confirmation.`
       notify('withdrawal', title, body)
       void sendEmailNotification('withdrawal', title, body, `submitted:${txHash}`)
-      await logAudit('send_submitted', { chain: chain?.name ?? 'unknown', asset: asset.symbol, to, amount })
+      await logAudit('send_submitted', {
+        chain: chain?.name ?? 'unknown',
+        asset: asset.symbol,
+        to,
+        amount,
+        hash: txHash,
+      })
     } catch (err) {
       setError(err instanceof Error ? err.message.split('\n')[0] : 'Transaction was rejected.')
     }
@@ -283,22 +335,59 @@ export function SendPanel() {
 
       {error && <p className="text-xs text-rose-400">{error}</p>}
 
-      {hash && (
-        <div className="rounded-xl border border-white/10 bg-ink-900/70 p-3 text-xs">
-          <p className="text-slate-400">
-            {isSuccess ? 'Transaction confirmed' : 'Transaction submitted'} ·{' '}
-            <span className="font-mono text-slate-300">{shortAddr(hash, 8)}</span>
-          </p>
-          {meta && (
-            <a
-              href={`${meta.explorer}/tx/${hash}`}
-              target="_blank"
-              rel="noreferrer"
-              className="mt-1 inline-block font-semibold text-brand-400 hover:underline"
+      {receipt && (
+        <div className="rounded-xl border border-white/10 bg-ink-900/70 p-4 text-xs">
+          <div className="flex items-center justify-between gap-3">
+            <p className="font-semibold text-white">
+              {receipt.status === 'confirmed'
+                ? 'Withdrawal confirmed'
+                : receipt.status === 'failed'
+                  ? 'Withdrawal failed'
+                  : 'Withdrawal submitted'}
+            </p>
+            <span
+              className={`badge ${
+                receipt.status === 'confirmed'
+                  ? 'border-accent-500/30 bg-accent-500/10 text-accent-400'
+                  : receipt.status === 'failed'
+                    ? 'border-rose-500/30 bg-rose-500/10 text-rose-300'
+                    : 'border-amber-500/30 bg-amber-500/10 text-amber-300'
+              }`}
             >
-              View on explorer →
-            </a>
-          )}
+              {receipt.status === 'confirmed' ? 'Confirmed' : receipt.status === 'failed' ? 'Failed' : 'Pending'}
+            </span>
+          </div>
+
+          <div className="mt-3">
+            <ReceiptRow label="Transaction ID" value={receipt.hash}>
+              <CopyButton value={receipt.hash} label="Copy" />
+            </ReceiptRow>
+            <ReceiptRow label="From address" value={receipt.from}>
+              <CopyButton value={receipt.from} label="Copy" />
+            </ReceiptRow>
+            <ReceiptRow label="Recipient address" value={receipt.recipient ?? '—'}>
+              {receipt.recipient && <CopyButton value={receipt.recipient} label="Copy" />}
+            </ReceiptRow>
+            <ReceiptRow label="Amount" value={receipt.amount} />
+            <ReceiptRow label="Network" value={receipt.chainName} />
+            <ReceiptRow label="Time" value={new Date(receipt.createdAt).toLocaleString()} />
+          </div>
+
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            {receipt.explorerUrl && (
+              <a
+                href={receipt.explorerUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="btn-secondary !px-3 !py-1.5 text-xs"
+              >
+                View on explorer →
+              </a>
+            )}
+            <Link to="/history" className="btn-secondary !px-3 !py-1.5 text-xs">
+              View history
+            </Link>
+          </div>
         </div>
       )}
 
