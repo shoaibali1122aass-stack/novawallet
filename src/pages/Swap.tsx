@@ -12,7 +12,7 @@ import {
 } from 'wagmi'
 import { formatUnits, parseUnits } from 'viem'
 import { CHAIN_META, TOKENS, erc20Abi, type SupportedChainId } from '../lib/chains'
-import { WalletButton } from '../components/WalletButton'
+import { WalletConnectPrompt } from '../components/WalletConnectPrompt'
 import { notify, suppressDepositAlerts } from '../lib/notifications'
 import { sendEmailNotification } from '../lib/emailNotifications'
 import { fmtAmount, fmtUsd, shortAddr } from '../lib/format'
@@ -357,17 +357,12 @@ export default function Swap() {
           <h1 className="text-2xl font-black tracking-tight text-white">Swap</h1>
           <p className="mt-1 text-sm text-slate-400">Exchange tokens on the same network in one signed transaction.</p>
         </div>
-        <div className="card space-y-3 p-6 text-center">
-          <p className="text-sm font-semibold text-white">Connect a wallet to swap</p>
+        <div className="card space-y-3 p-6">
+          <p className="text-sm font-semibold text-white">Open your wallet to swap</p>
           <p className="text-xs leading-relaxed text-slate-400">
             Swaps are executed by your wallet through the LI.FI aggregator. NovaWallet never holds your funds.
           </p>
-          <div className="flex justify-center">
-            <WalletButton compact />
-          </div>
-          <Link to="/dashboard#local-wallet" className="text-xs font-semibold text-brand-400 hover:underline">
-            Or create / unlock the on-device NovaWallet →
-          </Link>
+          <WalletConnectPrompt />
         </div>
       </div>
     )

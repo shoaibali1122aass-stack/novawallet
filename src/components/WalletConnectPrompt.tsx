@@ -1,9 +1,9 @@
-import { useSyncExternalStore } from 'react'
 import { Link } from 'react-router-dom'
-import { useAccount, useConnect } from 'wagmi'
+import { useAccount } from 'wagmi'
 import { useAuth } from '../context/AuthContext'
-import { getKeystore, localWalletStore } from '../lib/localWallet'
+import { getKeystore } from '../lib/localWallet'
 import { shortAddr } from '../lib/format'
+import { useAutoConnectLocalWallet } from '../hooks/useAutoConnectLocalWallet'
 import { WalletButton } from './WalletButton'
 
 export function WalletConnectPrompt({
@@ -13,16 +13,10 @@ export function WalletConnectPrompt({
 }) {
   const { address: connected } = useAccount()
   const { profile } = useAuth()
-  const { connectors, connectAsync, isPending, error } = useConnect()
-  const wallet = useSyncExternalStore(
-    localWalletStore.subscribe,
-    localWalletStore.getSnapshot,
-    localWalletStore.getSnapshot,
-  )
+  const { address: walletAddress, unlocked, busy, error, retry } = useAutoConnectLocalWallet()
   const keystore = getKeystore()
-  const localConnector = connectors.find((connector) => connector.id === 'novaLocal')
-  const unlocked = Boolean(wallet.address)
   const linked = profile?.wallet_address ?? null
+  const failed = Boolean(error) && !busy
 
   if (connected) return null
 
@@ -30,17 +24,26 @@ export function WalletConnectPrompt({
     <div className="space-y-3">
       {description && <p className="text-xs leading-relaxed text-slate-400">{description}</p>}
 
-      {unlocked && localConnector ? (
+      {unlocked ? (
         <div className="rounded-xl border border-accent-500/20 bg-accent-500/5 p-3">
-          <p className="text-xs font-semibold text-accent-300">NovaWallet is unlocked on this device</p>
-          <p className="mt-1 break-all font-mono text-[11px] text-slate-300">{wallet.address}</p>
-          <button
-            className="btn-primary mt-3 w-full"
-            disabled={isPending}
-            onClick={() => connectAsync({ connector: localConnector })}
-          >
-            {isPending ? 'Connecting…' : 'Connect NovaWallet'}
-          </button>
+          <p className="text-xs font-semibold text-accent-300">
+            {failed
+              ? 'NovaWallet is unlocked but could not reconnect'
+              : 'Opening your saved NovaWallet…'}
+          </p>
+          <p className="mt-1 break-all font-mono text-[11px] text-slate-300">{walletAddress}</p>
+          {failed ? (
+            <>
+              <p className="mt-2 text-[11px] leading-relaxed text-rose-400">{error?.message.split('\n')[0]}</p>
+              <button className="btn-primary mt-3 w-full" disabled={busy} onClick={() => void retry()}>
+                {busy ? 'Opening…' : 'Try again'}
+              </button>
+            </>
+          ) : (
+            <p className="mt-2 text-[11px] leading-relaxed text-slate-400">
+              This wallet is already saved on this device. It reconnects automatically, no extra step needed.
+            </p>
+          )}
         </div>
       ) : keystore ? (
         <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-3">
@@ -56,7 +59,7 @@ export function WalletConnectPrompt({
         <>
           {linked && (
             <p className="text-xs leading-relaxed text-slate-400">
-              Linked wallet: <span className="font-mono text-slate-300">{shortAddr(linked, 6)}</span>. Connect that
+              Linked wallet: <span className="font-mono text-slate-300">{shortAddr(linked, 6)}</span>. Open that
               wallet to continue.
             </p>
           )}
@@ -70,7 +73,7 @@ export function WalletConnectPrompt({
         </>
       )}
 
-      {error && <p className="text-xs text-rose-400">{error.message.split('\n')[0]}</p>}
+      {!unlocked && error && <p className="text-xs text-rose-400">{error.message.split('\n')[0]}</p>}
     </div>
   )
 }

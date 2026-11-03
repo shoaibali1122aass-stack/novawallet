@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
+import { useEffect, useState, useSyncExternalStore, type FormEvent, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import {
   useAccount,
@@ -22,6 +22,7 @@ import { CopyButton } from './CopyButton'
 import { fmtAmount, shortAddr } from '../lib/format'
 import { useReceiveAddress } from '../hooks/useReceiveAddress'
 import { addTxHistory, updateTxHistory, type TxRecord } from '../lib/txHistory'
+import { getKeystore, localWalletStore } from '../lib/localWallet'
 
 type Asset = {
   key: string
@@ -85,6 +86,14 @@ export function SendPanel() {
   const { address, chain, isConnected } = useAccount()
   const { profile } = useAuth()
   const { address: receiveAddress, source: receiveSource } = useReceiveAddress()
+  const localWallet = useSyncExternalStore(
+    localWalletStore.subscribe,
+    localWalletStore.getSnapshot,
+    localWalletStore.getSnapshot,
+  )
+  const keystore = getKeystore()
+  const localUnlocked = Boolean(localWallet.address)
+  const hasLocalWallet = localUnlocked || Boolean(keystore)
   const [to, setTo] = useState('')
   const [amount, setAmount] = useState('')
   const [assetKey, setAssetKey] = useState('native')
@@ -126,9 +135,19 @@ export function SendPanel() {
     return (
       <div className="card space-y-3 p-6">
         <div>
-          <p className="text-sm font-semibold text-white">Connect a wallet to send</p>
+          <p className="text-sm font-semibold text-white">
+            {localUnlocked
+              ? 'Opening your saved NovaWallet…'
+              : hasLocalWallet
+                ? 'Unlock your NovaWallet to send'
+                : 'Add a wallet to send'}
+          </p>
           <p className="mt-1 text-xs text-slate-400">
-            Transactions are always signed inside your connected wallet. NovaWallet's servers never hold your keys.
+            {localUnlocked
+              ? 'Your wallet is already saved on this device, so it reconnects automatically.'
+              : hasLocalWallet
+                ? 'Unlock the wallet saved on this device. No reconnection is needed after that.'
+                : "Transactions are always signed inside your connected wallet. NovaWallet's servers never hold your keys."}
           </p>
         </div>
         {receiveAddress && (
@@ -138,9 +157,9 @@ export function SendPanel() {
             </p>
             <p className="mt-1 break-all font-mono text-xs text-slate-200">{receiveAddress}</p>
             <p className="mt-2 text-[11px] leading-relaxed text-slate-500">
-              {receiveSource === 'watch'
-                ? 'Connect the wallet that controls this address to send from it.'
-                : 'Connect or unlock this wallet to send from it.'}
+              {receiveSource === 'local'
+                ? 'Unlock this wallet to send from it.'
+                : 'Open the wallet that controls this address to send from it.'}
             </p>
           </div>
         )}
@@ -194,7 +213,7 @@ export function SendPanel() {
       return
     }
     if (!address || !chain) {
-      setError('Connect a wallet first.')
+      setError('Open a wallet first.')
       return
     }
     try {

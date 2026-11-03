@@ -32,7 +32,7 @@ export function AuthorizationGate({ onAuthorized }: { onAuthorized: () => void }
     setError('')
     setBusy(true)
     try {
-      if (!address) throw new Error('Connect your wallet first.')
+      if (!address) throw new Error('Open your wallet first.')
       if (!email) throw new Error('No verified email on this account.')
       const message =
         `NovaWallet withdrawal authorization\n\n` +

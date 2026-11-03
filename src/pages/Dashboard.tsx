@@ -51,7 +51,9 @@ function ReceiveCard({
           </Link>
           {watchOnly && (
             <p className="mt-2 text-[11px] leading-relaxed text-amber-400">
-              Deposits are safe to this address. To withdraw, connect the wallet that controls it.
+              {source === 'local'
+                ? 'Deposits are safe to this address. Unlock the saved wallet to withdraw from it.'
+                : 'Deposits are safe to this address. Open the wallet that controls it to withdraw.'}
             </p>
           )}
         </>

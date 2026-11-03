@@ -316,7 +316,7 @@ export function LocalWalletCard() {
                   <CopyButton value={unlockedAddress} label="Copy address" />
                   {!localConnected && (
                     <button className="btn-secondary !px-3 !py-1.5 text-xs" onClick={handleConnect} disabled={working}>
-                      {working ? 'Connecting…' : 'Connect'}
+                      {working ? 'Opening…' : 'Use this wallet'}
                     </button>
                   )}
                   <button className="btn-secondary !px-3 !py-1.5 text-xs" onClick={handleLock} disabled={working}>
@@ -333,7 +333,7 @@ export function LocalWalletCard() {
               </div>
               {isConnected && !localConnected && (
                 <p className="text-[11px] leading-relaxed text-amber-400">
-                  An external wallet is connected. Connecting this local wallet will disconnect it.
+                  An external wallet is active. Using this local wallet will replace it.
                 </p>
               )}
             </>
