@@ -1,6 +1,6 @@
 import { scopedGet, scopedSet } from './scopedStorage'
 
-export type TxKind = 'withdrawal' | 'swap'
+export type TxKind = 'withdrawal' | 'deposit' | 'swap'
 export type TxStatus = 'pending' | 'confirmed' | 'failed'
 
 export type TxRecord = {
@@ -16,6 +16,8 @@ export type TxRecord = {
   status: TxStatus
   createdAt: number
   note?: string
+  chainId?: number
+  source?: 'local' | 'onchain'
 }
 
 const BASE = 'nova_tx_history'

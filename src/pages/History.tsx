@@ -2,6 +2,10 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { CopyButton } from '../components/CopyButton'
+import { useReceiveAddress } from '../hooks/useReceiveAddress'
+import { getKeystore } from '../lib/localWallet'
+import { clearOnChainCache, fetchOnChainHistory } from '../lib/onChainHistory'
+import { scopedGet } from '../lib/scopedStorage'
 import { timeAgo } from '../lib/format'
 import {
   clearTxHistory,
@@ -19,6 +23,7 @@ type Filter = 'all' | TxKind
 const filters: { key: Filter; label: string }[] = [
   { key: 'all', label: 'All' },
   { key: 'withdrawal', label: 'Withdrawals' },
+  { key: 'deposit', label: 'Deposits' },
   { key: 'swap', label: 'Swaps' },
 ]
 
@@ -29,11 +34,28 @@ function statusClass(status: TxStatus) {
 }
 
 function kindIcon(kind: TxKind) {
-  return kind === 'withdrawal' ? '↑' : '⇄'
+  if (kind === 'withdrawal') return '↑'
+  if (kind === 'deposit') return '↓'
+  return '⇄'
 }
 
 function kindClass(kind: TxKind) {
-  return kind === 'withdrawal' ? 'bg-amber-500/15 text-amber-300' : 'bg-brand-500/15 text-brand-400'
+  if (kind === 'withdrawal') return 'bg-amber-500/15 text-amber-300'
+  if (kind === 'deposit') return 'bg-emerald-500/15 text-emerald-300'
+  return 'bg-brand-500/15 text-brand-400'
+}
+
+function mergeRecords(local: TxRecord[], onChain: TxRecord[]): TxRecord[] {
+  const localHashes = new Set(local.map((record) => record.hash.toLowerCase()))
+  const seen = new Set<string>()
+  const merged = [...local]
+  for (const record of onChain) {
+    if (localHashes.has(record.hash.toLowerCase())) continue
+    if (seen.has(record.id)) continue
+    seen.add(record.id)
+    merged.push(record)
+  }
+  return merged.sort((a, b) => b.createdAt - a.createdAt)
 }
 
 function DetailRow({ label, value }: { label: string; value: string }) {
@@ -63,9 +85,13 @@ function TxCard({ record, onRemove }: { record: TxRecord; onRemove: () => void }
         </div>
         <div className="flex shrink-0 flex-col items-end gap-2">
           <span className={`badge ${statusClass(record.status)}`}>{TX_STATUS_LABEL[record.status]}</span>
-          <button type="button" onClick={onRemove} className="text-[11px] font-semibold text-slate-500 hover:text-rose-300">
-            Remove
-          </button>
+          {record.source === 'onchain' ? (
+            <span className="badge border-white/10 bg-white/5 text-[10px] text-slate-400">On-chain</span>
+          ) : (
+            <button type="button" onClick={onRemove} className="text-[11px] font-semibold text-slate-500 hover:text-rose-300">
+              Remove
+            </button>
+          )}
         </div>
       </div>
 
@@ -105,15 +131,59 @@ function TxCard({ record, onRemove }: { record: TxRecord; onRemove: () => void }
 
 export default function History() {
   const { profile } = useAuth()
-  const [items, setItems] = useState<TxRecord[]>([])
+  const { address: evmAddress } = useReceiveAddress()
+  const [localItems, setLocalItems] = useState<TxRecord[]>([])
+  const [onChainItems, setOnChainItems] = useState<TxRecord[]>([])
+  const [errors, setErrors] = useState<string[]>([])
+  const [loading, setLoading] = useState(false)
+  const [refreshedAt, setRefreshedAt] = useState<number | null>(null)
+  const [refreshKey, setRefreshKey] = useState(0)
   const [filter, setFilter] = useState<Filter>('all')
   const [confirmClear, setConfirmClear] = useState(false)
 
+  const extraAddresses = useMemo(() => {
+    const keystore = getKeystore()
+    return {
+      btc: scopedGet('nova_btc_address', profile?.id) || keystore?.btcAddress || '',
+      sol: scopedGet('nova_sol_address', profile?.id) || keystore?.solAddress || '',
+    }
+  }, [profile?.id])
+
   useEffect(() => {
-    const refresh = () => setItems(listTxHistory(profile?.id))
+    const refresh = () => setLocalItems(listTxHistory(profile?.id))
     refresh()
     return subscribeTxHistory(refresh)
   }, [profile?.id])
+
+  useEffect(() => {
+    if (!evmAddress && !extraAddresses.btc && !extraAddresses.sol) {
+      setOnChainItems([])
+      setErrors([])
+      return
+    }
+    let alive = true
+    setLoading(true)
+    setErrors([])
+    fetchOnChainHistory({ evm: evmAddress, btc: extraAddresses.btc, sol: extraAddresses.sol })
+      .then((result) => {
+        if (!alive) return
+        setOnChainItems(result.records)
+        setErrors(result.errors)
+        setRefreshedAt(Date.now())
+      })
+      .catch((error) => {
+        if (!alive) return
+        setErrors([error instanceof Error ? error.message : 'Could not load on-chain history'])
+      })
+      .finally(() => {
+        if (alive) setLoading(false)
+      })
+    return () => {
+      alive = false
+    }
+  }, [evmAddress, extraAddresses.btc, extraAddresses.sol, refreshKey])
+
+  const items = useMemo(() => mergeRecords(localItems, onChainItems), [localItems, onChainItems])
 
   const visible = useMemo(
     () => (filter === 'all' ? items : items.filter((item) => item.kind === filter)),
@@ -124,6 +194,7 @@ export default function History() {
     () => ({
       all: items.length,
       withdrawal: items.filter((item) => item.kind === 'withdrawal').length,
+      deposit: items.filter((item) => item.kind === 'deposit').length,
       swap: items.filter((item) => item.kind === 'swap').length,
     }),
     [items],
@@ -135,10 +206,21 @@ export default function History() {
         <div>
           <h1 className="text-2xl font-black tracking-tight text-white">Transaction history</h1>
           <p className="mt-1 text-sm text-slate-400">
-            Every withdrawal and swap sent from this account, with its transaction ID, address and amount.
+            Withdrawals, deposits and swaps with their transaction ID, address and amount.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              clearOnChainCache()
+              setRefreshKey((value) => value + 1)
+            }}
+            disabled={loading}
+            className="btn-secondary"
+          >
+            {loading ? 'Scanning…' : 'Refresh'}
+          </button>
           <Link to="/withdraw" className="btn-secondary">
             New withdrawal
           </Link>
@@ -164,7 +246,7 @@ export default function History() {
           ))}
         </div>
 
-        {items.length > 0 && (
+        {localItems.length > 0 && (
           <button
             type="button"
             onClick={() => {
@@ -173,22 +255,47 @@ export default function History() {
                 return
               }
               clearTxHistory(profile?.id)
+              setLocalItems([])
               setConfirmClear(false)
             }}
             onBlur={() => setConfirmClear(false)}
             className="btn-ghost text-xs"
           >
-            {confirmClear ? 'Tap again to clear history' : 'Clear history'}
+            {confirmClear ? 'Tap again to clear local records' : 'Clear local records'}
           </button>
         )}
       </div>
 
-      {visible.length === 0 ? (
+      {!loading && refreshedAt && (
+        <p className="text-[11px] text-slate-500">
+          On-chain history updated {timeAgo(new Date(refreshedAt).toISOString())}
+          {onChainItems.length > 0 ? ` · ${onChainItems.length} on-chain transactions found` : ''}
+        </p>
+      )}
+
+      {errors.length > 0 && (
+        <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-3 text-[11px] leading-relaxed text-amber-200/80">
+          <p className="font-semibold text-amber-200">Some networks could not be scanned</p>
+          <ul className="mt-1 list-disc space-y-0.5 pl-4">
+            {errors.map((error) => (
+              <li key={error}>{error}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {loading && items.length === 0 ? (
+        <div className="card p-10 text-center">
+          <p className="text-sm font-semibold text-white">Scanning on-chain activity…</p>
+          <p className="mx-auto mt-2 max-w-md text-xs leading-relaxed text-slate-400">
+            Looking up withdrawals and deposits for your wallet on every supported network.
+          </p>
+        </div>
+      ) : visible.length === 0 ? (
         <div className="card p-10 text-center">
           <p className="text-sm font-semibold text-white">No transactions yet</p>
           <p className="mx-auto mt-2 max-w-md text-xs leading-relaxed text-slate-400">
-            Withdrawals and swaps you send from NovaWallet will appear here with the transaction ID, recipient address
-            and amount.
+            Withdrawals, deposits and swaps for this wallet will appear here with the transaction ID, address and amount.
           </p>
           <div className="mt-4 flex justify-center gap-2">
             <Link to="/withdraw" className="btn-primary">
@@ -207,7 +314,7 @@ export default function History() {
               record={record}
               onRemove={() => {
                 removeTxHistory(profile?.id, record.hash)
-                setItems(listTxHistory(profile?.id))
+                setLocalItems(listTxHistory(profile?.id))
               }}
             />
           ))}

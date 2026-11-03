@@ -30,7 +30,7 @@ jobs:
       - name: Create SPA route shells
         run: |
           cp dist/index.html dist/404.html
-          for route in dashboard deposit withdraw swap security support admin login setup; do
+          for route in dashboard deposit withdraw swap history security support admin login setup; do
             mkdir -p "dist/$route"
             cp dist/index.html "dist/$route/index.html"
           done
