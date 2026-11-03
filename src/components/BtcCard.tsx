@@ -5,6 +5,7 @@ import { getKeystore, localWalletStore } from '../lib/localWallet'
 import { scopedGet, scopedSet } from '../lib/scopedStorage'
 import { fmtAmount, shortAddr } from '../lib/format'
 import { CopyButton } from './CopyButton'
+import { TokenIcon } from './AssetIcon'
 
 type AddrStats = {
   chain_stats: { funded_txo_sum: number; spent_txo_sum: number }
@@ -91,12 +92,7 @@ export function BtcCard() {
     <div className="card card-hover p-5">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <span
-            className="grid h-9 w-9 place-items-center rounded-xl text-xs font-black text-white"
-            style={{ backgroundColor: '#f7931a22', border: '1px solid #f7931a55' }}
-          >
-            ₿
-          </span>
+          <TokenIcon symbol="BTC" size={36} />
           <div>
             <p className="text-sm font-semibold text-white">Bitcoin</p>
             <p className="text-xs text-slate-500">Native BTC · watch-only</p>

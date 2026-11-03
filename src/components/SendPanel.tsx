@@ -20,6 +20,7 @@ import { AuthorizationGate, isWithdrawalAuthorized } from './AuthorizationGate'
 import { NetworkFee } from './NetworkFee'
 import { WalletConnectPrompt } from './WalletConnectPrompt'
 import { CopyButton } from './CopyButton'
+import { ChainIcon, TokenIcon } from './AssetIcon'
 import { fmtAmount, shortAddr } from '../lib/format'
 import { useReceiveAddress } from '../hooks/useReceiveAddress'
 import { addTxHistory, updateTxHistory, type TxRecord } from '../lib/txHistory'
@@ -284,12 +285,18 @@ export function SendPanel() {
     <>
     <form onSubmit={startReview} className="card space-y-4 p-6">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-bold text-white">Send on {meta?.label ?? chain.name}</h3>
+        <h3 className="flex items-center gap-2 text-sm font-bold text-white">
+          <ChainIcon chainId={chain.id} size={18} />
+          Send on {meta?.label ?? chain.name}
+        </h3>
         <span className="badge border-white/10 bg-white/5 font-mono text-slate-400">{shortAddr(address)}</span>
       </div>
 
       <div>
-        <label className="label">Network</label>
+        <label className="label flex items-center gap-2">
+          Network
+          <ChainIcon chainId={chain.id} size={14} />
+        </label>
         <select
           className="input"
           value={chain.id}
@@ -316,7 +323,10 @@ export function SendPanel() {
       </div>
 
       <div>
-        <label className="label">Asset</label>
+        <label className="label flex items-center gap-2">
+          Asset
+          <TokenIcon symbol={asset.symbol} size={14} />
+        </label>
         <select className="input" value={assetKey} onChange={(e) => setAssetKey(e.target.value)}>
           {assets.map((a) => (
             <option key={a.key} value={a.key} className="bg-ink-900">

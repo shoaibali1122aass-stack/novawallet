@@ -3,6 +3,7 @@ import { formatUnits } from 'viem'
 import { CHAIN_META, TOKENS, erc20Abi, SUPPORTED_CHAINS } from '../lib/chains'
 import { fmtAmount, shortAddr } from '../lib/format'
 import { CopyButton } from './CopyButton'
+import { ChainIcon, TokenIcon } from './AssetIcon'
 
 export function ChainCard({
   chain,
@@ -41,12 +42,7 @@ export function ChainCard({
     <div className="card card-hover p-5">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <span
-            className="grid h-9 w-9 place-items-center rounded-xl text-xs font-black text-white"
-            style={{ backgroundColor: meta.color + '22', border: `1px solid ${meta.color}55` }}
-          >
-            {meta.coin}
-          </span>
+          <ChainIcon chainId={chain.id} size={36} />
           <div>
             <p className="text-sm font-semibold text-white">{meta.label}</p>
             <p className="text-xs text-slate-500">{chain.name}</p>
@@ -59,7 +55,10 @@ export function ChainCard({
         <p className="text-xs uppercase tracking-wider text-slate-500">Native balance</p>
         <p className="mt-1 font-mono text-2xl font-bold text-white">
           {address ? `${fmtAmount(nativeValue, 5)} ` : '— '}
-          <span className="text-sm font-semibold text-slate-400">{native.data?.symbol ?? meta.coin}</span>
+          <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-400">
+            <TokenIcon symbol={native.data?.symbol ?? meta.coin} size={16} />
+            {native.data?.symbol ?? meta.coin}
+          </span>
         </p>
       </div>
 
@@ -70,9 +69,7 @@ export function ChainCard({
           return (
             <div key={t.address} className="flex items-center justify-between text-sm">
               <span className="flex items-center gap-2 text-slate-300">
-                <span className="grid h-5 w-5 place-items-center rounded bg-white/5 text-[9px] font-bold text-slate-300">
-                  {t.symbol.slice(0, 1)}
-                </span>
+                <TokenIcon symbol={t.symbol} size={20} />
                 {t.symbol}
               </span>
               <span className="font-mono text-slate-200">{address ? fmtAmount(value, 4) : '—'}</span>

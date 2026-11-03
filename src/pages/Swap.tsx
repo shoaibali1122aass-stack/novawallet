@@ -13,6 +13,7 @@ import {
 import { formatUnits, parseUnits } from 'viem'
 import { CHAIN_META, TOKENS, erc20Abi, type SupportedChainId } from '../lib/chains'
 import { WalletConnectPrompt } from '../components/WalletConnectPrompt'
+import { ChainIcon, TokenIcon } from '../components/AssetIcon'
 import { notify, suppressDepositAlerts } from '../lib/notifications'
 import { sendEmailNotification } from '../lib/emailNotifications'
 import { fmtAmount, fmtUsd, shortAddr } from '../lib/format'
@@ -379,7 +380,10 @@ export default function Swap() {
 
       <form onSubmit={fetchQuote} className="card space-y-4 p-6">
         <div>
-          <label className="label">Network</label>
+          <label className="label flex items-center gap-2">
+            Network
+            <ChainIcon chainId={chain.id} size={14} />
+          </label>
           <select
             className="input"
             value={chain.id}
@@ -396,7 +400,10 @@ export default function Swap() {
 
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
-            <label className="label">From</label>
+            <label className="label flex items-center gap-2">
+              From
+              <TokenIcon symbol={from?.symbol ?? ''} size={14} />
+            </label>
             <select className="input" value={fromKey} onChange={(e) => setFromKey(e.target.value)}>
               {assets.map((a) => (
                 <option key={a.key} value={a.key} className="bg-ink-900">
@@ -406,7 +413,10 @@ export default function Swap() {
             </select>
           </div>
           <div>
-            <label className="label">To</label>
+            <label className="label flex items-center gap-2">
+              To
+              <TokenIcon symbol={to?.symbol ?? ''} size={14} />
+            </label>
             <select className="input" value={toKey} onChange={(e) => setToKey(e.target.value)}>
               {assets.map((a) => (
                 <option key={a.key} value={a.key} className="bg-ink-900">

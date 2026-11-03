@@ -7,6 +7,7 @@ import { CopyButton } from '../components/CopyButton'
 import { AddressQr } from '../components/AddressQr'
 import { BtcCard } from '../components/BtcCard'
 import { SolCard } from '../components/SolCard'
+import { ChainIcon, TokenIcon } from '../components/AssetIcon'
 import { fmtAmount, shortAddr } from '../lib/format'
 import { useReceiveAddress } from '../hooks/useReceiveAddress'
 
@@ -35,7 +36,10 @@ function DepositBalances({ address, chainId }: { address: `0x${string}`; chainId
       <p className="text-[11px] uppercase tracking-wider text-slate-500">Your balance on {meta?.label}</p>
       <div className="mt-2 space-y-1.5">
         <div className="flex items-center justify-between text-sm">
-          <span className="text-slate-300">{native.data?.symbol ?? meta?.coin ?? 'Native'}</span>
+          <span className="flex items-center gap-2 text-slate-300">
+            <TokenIcon symbol={native.data?.symbol ?? meta?.coin ?? 'Native'} size={16} />
+            {native.data?.symbol ?? meta?.coin ?? 'Native'}
+          </span>
           <span className="font-mono text-slate-200">
             {native.isLoading ? 'Loading…' : `${fmtAmount(nativeValue, 6)}`}
           </span>
@@ -45,7 +49,10 @@ function DepositBalances({ address, chainId }: { address: `0x${string}`; chainId
           const value = res !== undefined ? Number(formatUnits(res, t.decimals)) : 0
           return (
             <div key={t.address} className="flex items-center justify-between text-sm">
-              <span className="text-slate-300">{t.symbol}</span>
+              <span className="flex items-center gap-2 text-slate-300">
+                <TokenIcon symbol={t.symbol} size={16} />
+                {t.symbol}
+              </span>
               <span className="font-mono text-slate-200">
                 {reads.isLoading ? 'Loading…' : fmtAmount(value, 4)}
               </span>
@@ -142,7 +149,6 @@ export default function Deposit() {
               <div className="flex flex-wrap gap-2">
                 {SUPPORTED_CHAINS.map((c) => {
                   const active = c.id === chain.id
-                  const color = CHAIN_META[c.id]?.color
                   return (
                     <button
                       key={c.id}
@@ -154,10 +160,7 @@ export default function Deposit() {
                           : 'border-white/10 bg-white/[0.03] text-slate-400 hover:bg-white/5 hover:text-white'
                       }`}
                     >
-                      <span
-                        className="mr-2 inline-block h-2 w-2 rounded-full align-middle"
-                        style={{ backgroundColor: color }}
-                      />
+                      <ChainIcon chainId={c.id} size={16} className="mr-2 inline-block align-middle" />
                       {CHAIN_META[c.id]?.label ?? c.name}
                     </button>
                   )
@@ -183,7 +186,10 @@ export default function Deposit() {
             <h2 className="text-sm font-bold text-white">Supported tokens on {meta.label}</h2>
             <div className="mt-3 space-y-2">
               <div className="flex items-center justify-between rounded-lg bg-white/[0.03] px-3 py-2">
-                <span className="text-xs font-semibold text-slate-200">{chain.nativeCurrency.symbol} (native)</span>
+                <span className="flex items-center gap-2 text-xs font-semibold text-slate-200">
+                  <TokenIcon symbol={chain.nativeCurrency.symbol} size={18} />
+                  {chain.nativeCurrency.symbol} (native)
+                </span>
                 <span className="text-[11px] text-slate-500">No contract address</span>
               </div>
               {tokens.map((t) => (
@@ -191,7 +197,8 @@ export default function Deposit() {
                   key={t.address}
                   className="flex flex-col gap-2 rounded-lg bg-white/[0.03] px-3 py-2 sm:flex-row sm:items-center sm:justify-between"
                 >
-                  <span className="text-xs font-semibold text-slate-200">
+                  <span className="flex items-center gap-2 text-xs font-semibold text-slate-200">
+                    <TokenIcon symbol={t.symbol} size={18} />
                     {t.symbol} <span className="font-normal text-slate-500">· {t.name}</span>
                   </span>
                   <span className="flex items-center gap-2">

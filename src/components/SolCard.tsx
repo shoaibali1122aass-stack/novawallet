@@ -5,6 +5,7 @@ import { getKeystore, localWalletStore } from '../lib/localWallet'
 import { scopedGet, scopedSet } from '../lib/scopedStorage'
 import { fmtAmount, shortAddr } from '../lib/format'
 import { CopyButton } from './CopyButton'
+import { TokenIcon } from './AssetIcon'
 
 const SOL_BASE = 'nova_sol_address'
 const RPCS = [
@@ -102,12 +103,7 @@ export function SolCard() {
     <div className="card card-hover p-5">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <span
-            className="grid h-9 w-9 place-items-center rounded-xl text-xs font-black text-white"
-            style={{ background: 'linear-gradient(135deg,#9945ff33,#14f19533)', border: '1px solid #9945ff55' }}
-          >
-            ◎
-          </span>
+          <TokenIcon symbol="SOL" size={36} />
           <div>
             <p className="text-sm font-semibold text-white">Solana</p>
             <p className="text-xs text-slate-500">Native SOL · watch-only</p>
